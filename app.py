@@ -283,6 +283,28 @@ if file:
     dmin, dmax = (ds.min(), ds.max()) if not ds.empty else (pd.NaT, pd.NaT)
     date_chip_text = pretty_range(dmin, dmax)
 
+    # --- Optional date-range slider (only if multiple days present) ---
+    if not pd.isna(dmin) and not pd.isna(dmax) and dmin.normalize() < dmax.normalize():
+        # Friendly UI: show slider under the chips
+        st.write("")  # small spacer
+        start_default = dmin.date()
+        end_default = dmax.date()
+        selected_start, selected_end = st.slider(
+            "Filter orders by date range",
+            min_value=start_default,
+            max_value=end_default,
+            value=(start_default, end_default),
+            format="MMM DD, YYYY",
+            help="Drag the handles to zoom into a subset of the uploaded orders."
+        )
+        # Filter the DataFrame by the chosen range
+        mask = ds.dt.date.between(selected_start, selected_end)
+        df = df.loc[mask].copy()
+    
+        # Update chip text to reflect the filtered window
+        date_chip_text = pretty_range(pd.to_datetime(selected_start), pd.to_datetime(selected_end))
+
+
 
     # Split front-end vs recurring
     df_front, df_rec = split_frontend(df)
