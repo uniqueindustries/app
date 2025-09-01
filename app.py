@@ -24,6 +24,10 @@ h1{font-size:2.1rem!important;margin-bottom:.4rem}
 .pill.negative { border: 1px solid #fca5a5; background: #fef2f2; }
 .pill.negative .value { color: #dc2626; }
 
+/* POSITIVE state */
+.pill.positive { border: 1px solid #86efac; background: #f0fdf4; }
+.pill.positive .value { color: #15803d; }
+
 .row{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:10px 0 16px}
 .fxchip{
   display:inline-flex; gap:6px; align-items:center; font-size:.78rem; color:#475569;
@@ -183,8 +187,16 @@ if file:
     st.markdown('</div>', unsafe_allow_html=True)
     
     # Row 3: Overall Profit (red if negative), ROAS
-    profit_class = "pill" if overall_profit >= 0 else "pill negative"
-    profit_value = f"${overall_profit:,.2f}" if overall_profit >= 0 else f"-${abs(overall_profit):,.2f}"
+    if overall_profit > 0:
+        profit_class = "pill positive"
+        profit_value = f"${overall_profit:,.2f}"
+    elif overall_profit < 0:
+        profit_class = "pill negative"
+        profit_value = f"-${abs(overall_profit):,.2f}"
+    else:
+        profit_class = "pill"
+        profit_value = "$0.00"
+
     
     st.markdown('<div class="row">', unsafe_allow_html=True)
     st.markdown(f'''
