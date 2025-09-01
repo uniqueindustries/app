@@ -2,6 +2,34 @@ import streamlit as st
 import pandas as pd
 import re, unicodedata
 
+# ------------------------- PAGE / THEME -------------------------
+st.set_page_config(page_title="Rhóms COGS Calculator", page_icon="🧮", layout="centered")
+
+# Minimal CSS “cards”
+st.markdown("""
+<style>
+/* tighten default spacing */
+.block-container {padding-top: 2rem; padding-bottom: 3rem;}
+/* big title */
+h1 { font-size: 2.2rem !important; }
+.small { color: #6b7280; font-size: 0.9rem; }
+.card {
+  border-radius: 16px;
+  padding: 18px 18px 10px 18px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.kpi { font-weight: 700; font-size: 2rem; margin: 4px 0 0; }
+.kpi-label { color:#6b7280; font-size:.9rem; margin-bottom: .3rem;}
+hr {border: none; border-top: 1px solid #eee; margin: .8rem 0 1.2rem;}
+</style>
+""", unsafe_allow_html=True)
+
+st.title("Rhóms COGS Calculator")
+st.caption("Upload a Shopify orders CSV for any date. I’ll output **Total COGS (USD)**, **Revenue (GBP & USD)**, and **Shopify Fees (USD)**.")
+
+# ------------------------- CONFIG / MAPPINGS -------------------------
 MAIN_COST_TABLE = {
     "United States": {1: 8.00, 2: 10.50, 3: 13.00, 4: 15.50, 5: 18.00, 6: 20.50},
     "United Kingdom": {1: 5.50, 2: 8.00, 3: 10.00, 4: 12.00, 5: 14.00, 6: 16.00},
@@ -20,6 +48,7 @@ COUNTRY_MAP = {
 }
 COUNTRY_COLS = ["Shipping Country","Shipping Country Code","Shipping Address Country Code","Shipping Address Country"]
 
+# ------------------------- HELPERS -------------------------
 def norm(s):
     s = str(s)
     s = unicodedata.normalize("NFKD", s).encode("ascii","ignore").decode("ascii").lower()
@@ -33,16 +62,20 @@ def extra_key(n):
         if key in n: return key
     return None
 
-def calc_total(df, debug=False):
+def calc_cogs(df: pd.DataFrame, debug=False):
+    # find country col
     for c in COUNTRY_COLS:
         if c in df.columns: country_col = c; break
-    else: raise ValueError("No country column found")
+    else: raise ValueError("No shipping country column found in CSV.")
+    # prep
+    df = df.copy()
     df["qty"] = pd.to_numeric(df["Lineitem quantity"], errors="coerce").fillna(0).astype(int)
     df["Country"] = df[country_col].map(COUNTRY_MAP).fillna(df[country_col])
+
     total=0.0; logs=[]
     for oid, grp in df.groupby("Name"):
         country = str(grp["Country"].iloc[0]).strip()
-        main_qty=0; extras_cost=0
+        main_qty=0; extras_cost=0.0
         for _,r in grp.iterrows():
             n=norm(r["Lineitem name"]); q=int(r["qty"])
             if q==0 or zero_cogs(n): continue
@@ -54,41 +87,74 @@ def calc_total(df, debug=False):
                 logs.append(f"{oid}: Unmapped {r['Lineitem name']}")
         main_cost = MAIN_COST_TABLE.get(country,{}).get(main_qty,0) if main_qty else 0
         total += main_cost + extras_cost
-        if debug: logs.append(f"{oid} ({country}) main={main_qty}u → {main_cost}, extras={extras_cost}")
+        if debug:
+            logs.append(f"{oid} · {country} · main {main_qty}u = ${main_cost:.2f} · extras ${extras_cost:.2f}")
     return round(total,2), logs
 
-st.title("Rhóms COGS Calculator")
-file = st.file_uploader("Upload Shopify CSV", type=["csv"])
-debug = st.checkbox("Show per-order breakdown")
-if file:
-    df = pd.read_csv(file)
-    total, logs = calc_total(df, debug=debug)
-
-    st.metric("Total COGS (USD)", f"${total:,.2f}")
-    if debug and logs:
-        st.subheader("Debug Log")
-        for l in logs: st.write(l)
-
-    # --- Revenue & Shopify Fees ---
-    GBP_TO_USD = 1.3  # fixed conversion rate
+def calc_revenue_and_fees(df: pd.DataFrame, gbp_to_usd: float):
     revenue_col_candidates = ["Total", "Total Sales", "Total (GBP)", "Total Price"]
-    revenue_col = None
-    for c in revenue_col_candidates:
-        if c in df.columns:
-            revenue_col = c
-            break
-
+    revenue_col = next((c for c in revenue_col_candidates if c in df.columns), None)
     if revenue_col:
         revenue_gbp = pd.to_numeric(df[revenue_col], errors="coerce").fillna(0).sum()
+    elif "Lineitem price" in df.columns:
+        revenue_gbp = (pd.to_numeric(df["Lineitem price"], errors="coerce").fillna(0) *
+                       pd.to_numeric(df.get("qty", 0), errors="coerce").fillna(0)).sum()
     else:
-        if "Lineitem price" in df.columns:
-            revenue_gbp = (pd.to_numeric(df["Lineitem price"], errors="coerce").fillna(0) * df["qty"]).sum()
-        else:
-            revenue_gbp = 0.0
+        revenue_gbp = 0.0
 
-    revenue_usd = revenue_gbp * GBP_TO_USD
-    fees = ((revenue_usd * 0.028 + 0.3) * 1.1) + ((revenue_usd * 0.02) * 1.1)
+    revenue_usd = revenue_gbp * gbp_to_usd
+    # Shopify fee formula (on USD revenue)
+    fees_usd = ((revenue_usd * 0.028 + 0.3) * 1.1) + ((revenue_usd * 0.02) * 1.1)
+    return round(revenue_gbp,2), round(revenue_usd,2), round(fees_usd,2)
 
-    st.metric("Revenue (GBP)", f"£{revenue_gbp:,.2f}")
-    st.metric("Revenue (USD)", f"${revenue_usd:,.2f}")
-    st.metric("Shopify Fees (USD)", f"${fees:,.2f}")
+# ------------------------- SIDEBAR CONTROLS -------------------------
+with st.sidebar:
+    st.subheader("Settings")
+    fx = st.number_input("GBP → USD rate", value=1.30, step=0.01, format="%.2f",
+                         help="Revenue in your CSV is GBP; COGS table is USD. Default 1.30.")
+    show_debug = st.toggle("Show per-order breakdown", value=False)
+    st.caption("Change the FX rate if needed. Debug shows per-order COGS.")
+
+# ------------------------- MAIN UI -------------------------
+file = st.file_uploader("Upload Shopify CSV", type=["csv"])
+
+if file:
+    df = pd.read_csv(file)
+    total_cogs_usd, logs = calc_cogs(df, debug=show_debug)
+    revenue_gbp, revenue_usd, fees_usd = calc_revenue_and_fees(df, fx)
+    net_after_fees = max(revenue_usd - fees_usd, 0)  # just a display nicety
+    gross_profit = max(revenue_usd - fees_usd - total_cogs_usd, 0)
+
+    # KPI cards
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown('<div class="card"><div class="kpi-label">Total COGS (USD)</div>'
+                    f'<div class="kpi">${total_cogs_usd:,.2f}</div></div>', unsafe_allow_html=True)
+    with col2:
+        st.markdown('<div class="card"><div class="kpi-label">Shopify Fees (USD)</div>'
+                    f'<div class="kpi">${fees_usd:,.2f}</div></div>', unsafe_allow_html=True)
+
+    col3, col4 = st.columns(2)
+    with col3:
+        st.markdown('<div class="card"><div class="kpi-label">Revenue (GBP)</div>'
+                    f'<div class="kpi">£{revenue_gbp:,.2f}</div></div>', unsafe_allow_html=True)
+    with col4:
+        st.markdown('<div class="card"><div class="kpi-label">Revenue (USD)</div>'
+                    f'<div class="kpi">${revenue_usd:,.2f}</div></div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="card"><div class="kpi-label">Net after Fees (USD)</div>'
+                f'<div class="kpi">${net_after_fees:,.2f}</div>'
+                '<hr><span class="small">Revenue USD − Shopify Fees</span></div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="card"><div class="kpi-label">Gross Profit (USD)</div>'
+                f'<div class="kpi">${gross_profit:,.2f}</div>'
+                '<hr><span class="small">Revenue USD − Fees − COGS</span></div>', unsafe_allow_html=True)
+
+    if show_debug and logs:
+        st.markdown("### Breakdown")
+        for l in logs:
+            st.write(l)
+
+else:
+    st.info("Drag a Shopify CSV above to calculate COGS, revenue, and fees.")
+
