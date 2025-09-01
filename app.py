@@ -129,35 +129,44 @@ if file:
     net_after_fees = max(revenue_usd - fees_usd, 0)  # just a display nicety
     gross_profit = max(revenue_usd - fees_usd - total_cogs_usd, 0)
 
-    # KPI cards
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown('<div class="card"><div class="kpi-label">Total COGS (USD)</div>'
-                    f'<div class="kpi">${total_cogs_usd:,.2f}</div></div>', unsafe_allow_html=True)
-    with col2:
-        st.markdown('<div class="card"><div class="kpi-label">Shopify Fees (USD)</div>'
-                    f'<div class="kpi">${fees_usd:,.2f}</div></div>', unsafe_allow_html=True)
+        # --- KPI pills layout ---
+    st.markdown(f'<span class="fxchip">FX £→$ = {fx:.2f}</span>', unsafe_allow_html=True)
+    st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 
-    col3, col4 = st.columns(2)
-    with col3:
-        st.markdown('<div class="card"><div class="kpi-label">Revenue (GBP)</div>'
-                    f'<div class="kpi">£{revenue_gbp:,.2f}</div></div>', unsafe_allow_html=True)
-    with col4:
-        st.markdown('<div class="card"><div class="kpi-label">Revenue (USD)</div>'
-                    f'<div class="kpi">${revenue_usd:,.2f}</div></div>', unsafe_allow_html=True)
+    # Row 1
+    st.markdown('<div class="row">', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="pill"><div class="label">Revenue (GBP)</div>
+    <div class="value">£{revenue_gbp:,.2f}</div></div>''', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="pill"><div class="label">Revenue (USD)</div>
+    <div class="value">${revenue_usd:,.2f}</div></div>''', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="pill"><div class="label">Shopify Fees (USD)</div>
+    <div class="value">${fees_usd:,.2f}</div></div>''', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="card"><div class="kpi-label">Net after Fees (USD)</div>'
-                f'<div class="kpi">${net_after_fees:,.2f}</div>'
-                '<hr><span class="small">Revenue USD − Shopify Fees</span></div>', unsafe_allow_html=True)
+    # Row 2
+    st.markdown('<div class="row">', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="pill"><div class="label">Total COGS (USD)</div>
+    <div class="value">${total_cogs_usd:,.2f}</div></div>''', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="pill"><div class="label">Net after Fees (USD)</div>
+    <div class="value">${net_after_fees:,.2f}</div>
+    <div class="small">Revenue USD – Fees</div></div>''', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="pill"><div class="label">Gross Profit (USD)</div>
+    <div class="value">${gross_profit:,.2f}</div>
+    <div class="small">Revenue USD – Fees – COGS</div></div>''', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="card"><div class="kpi-label">Gross Profit (USD)</div>'
-                f'<div class="kpi">${gross_profit:,.2f}</div>'
-                '<hr><span class="small">Revenue USD − Fees − COGS</span></div>', unsafe_allow_html=True)
-
+    # Debug log
     if show_debug and logs:
-        st.markdown("### Breakdown")
+        st.markdown("#### Breakdown")
         for l in logs:
             st.write(l)
+
 
 else:
     st.info("Drag a Shopify CSV above to calculate COGS, revenue, and fees.")
