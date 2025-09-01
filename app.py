@@ -2,43 +2,92 @@ import streamlit as st
 import pandas as pd
 import re, unicodedata
 
-# ------------------------- PAGE / THEME -------------------------
-st.set_page_config(page_title="Rhóms Profitability Dashboard", page_icon="🧮", layout="centered")
+# ------------------------- PAGE / META -------------------------
+st.set_page_config(
+    page_title="Rhóms Profitability Dashboard",
+    page_icon="🧮",
+    layout="centered",
+)
 
-# Minimal CSS (pills, rows, color states)
+# ------------------------- GLOBAL STYLES -------------------------
+# Dark mode + lime accent + condensed headline stack (Futura-Condensed first, with solid fallbacks)
 st.markdown("""
 <style>
-.block-container{padding-top:1.6rem;padding-bottom:2rem;max-width:980px;}
-h1{font-size:2.0rem!important;margin:.25rem 0 .6rem}
-.caption{color:#64748b}
+:root{
+  --bg:#0b0f15;
+  --panel:#121826;
+  --panel-2:#0f1520;
+  --text:#e5e7eb;
+  --muted:#9aa4b2;
+  --border:#1f2937;
+  --lime:#A4DB32;
+  --lime-weak:#c9f27a33;
+  --red:#ef4444;
+  --red-soft:#7f1d1d;
+  --green:#22c55e;
+  --green-soft:#052e16;
+}
+
+/* base */
+html, body, .block-container{background:var(--bg); color:var(--text);}
+.block-container{padding-top:1.6rem; padding-bottom:2rem; max-width:1100px;}
+/* headline: Futura Condensed (if installed) -> similar condensed fallbacks */
+h1, h2, h3, .hero, .value {
+  font-family: "Futura-Condensed", "Futura Condensed", "Impact", "Oswald", "Barlow Condensed", "Arial Narrow", system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+}
+h1{font-size:2.4rem!important; letter-spacing:.3px; margin:.1rem 0 .8rem}
+.caption{color:var(--muted)}
 
 /* grid rows */
-.row-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:10px 0 12px}
-.row-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:10px 0 12px}
-.row-2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:10px 0 12px}
+.row-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:14px 0 10px}
+.row-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0 10px}
+.row-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:14px 0 10px}
 
+/* pills (cards) */
 .pill{
-  border-radius:14px;background:#fff;border:1px solid #e5e7eb;
-  padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.03);
+  border-radius:14px; background:var(--panel); border:1px solid var(--border);
+  padding:16px 18px; box-shadow:0 8px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.02);
 }
-.pill .label{font-size:.78rem;color:#6b7280;letter-spacing:.2px;margin-bottom:.15rem}
-.pill .value{font-weight:800;font-size:1.65rem;line-height:1.15}
-.pill .sub{color:#94a3b8;font-size:.8rem;margin-top:.25rem}
+.pill .label{
+  font-size:.82rem; color:var(--muted); letter-spacing:.2px; margin-bottom:.25rem; font-weight:600;
+}
+.pill .value{
+  font-weight:900; font-size:2.2rem; line-height:1.05; color:var(--text);
+  text-shadow: 0 0 12px rgba(164,219,50,.08);
+}
+.pill .sub{color:#aab4c2; font-size:.86rem; margin-top:.35rem}
 
-/* states */
-.pill.positive{border:1px solid #86efac;background:#f0fdf4}
-.pill.positive .value{color:#15803d}
-.pill.negative{border:1px solid #fca5a5;background:#fef2f2}
-.pill.negative .value{color:#dc2626}
-
-/* fx chip */
 .fxchip{
-  display:inline-flex;gap:6px;align-items:center;font-size:.78rem;color:#475569;
-  background:#f1f5f9;border:1px solid #e2e8f0;padding:4px 8px;border-radius:999px;
+  display:inline-flex; gap:8px; align-items:center; font-size:.82rem; color:var(--text);
+  background:linear-gradient(180deg, #151c28, #0e1420);
+  border:1px solid var(--border); padding:6px 10px; border-radius:999px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
 }
-.hr{height:1px;background:#f1f5f9;margin:10px 0 6px}
-.center{display:flex;justify-content:center;gap:12px}
-.inputbox{min-width:320px}
+.fxchip .dot{width:8px; height:8px; background:var(--lime); border-radius:999px; box-shadow:0 0 10px var(--lime);}
+
+.hr{height:1px; background:var(--border); margin:12px 0 6px; opacity:.6}
+
+/* STATES: profit */
+.pill.positive{ border:1px solid var(--lime); box-shadow:0 0 0 1px var(--lime-weak), 0 8px 24px rgba(0,0,0,.25); }
+.pill.positive .value{ color:var(--lime); text-shadow:0 0 16px rgba(164,219,50,.35); }
+.pill.negative{ border:1px solid var(--red); background:linear-gradient(180deg, #1b1111, var(--panel)); }
+.pill.negative .value{ color:#ff7a7a; text-shadow:0 0 10px rgba(239,68,68,.35); }
+
+/* input panels */
+.center{display:flex;justify-content:center;gap:16px;flex-wrap:wrap}
+.inputbox{
+  min-width:340px; background:var(--panel-2); border:1px dashed var(--border); text-align:center;
+}
+.inputbox .value{font-size:1.6rem}
+
+/* Streamlit widgets tweaks */
+.stSlider > div > div > div > div{ background:var(--lime) !important; }
+.stButton>button, .stDownloadButton>button{
+  background:var(--panel); color:var(--text); border:1px solid var(--border);
+}
+.stButton>button:hover, .stDownloadButton>button:hover{
+  border-color:var(--lime); color:var(--lime);
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -60,7 +109,7 @@ COUNTRY_MAP = {
     "US":"United States","USA":"United States","United States":"United States",
 }
 COUNTRY_COLS = ["Shipping Country","Shipping Country Code","Shipping Address Country Code","Shipping Address Country"]
-RECURRING_TAG = "Subscription Recurring Order"  # non-front-end marker
+RECURRING_TAG = "Subscription Recurring Order"  # tag to exclude from front-end
 
 # ------------------------- HELPERS -------------------------
 def norm(s):
@@ -77,7 +126,6 @@ def extra_key(n):
     return None
 
 def split_frontend(df: pd.DataFrame):
-    """Return (front_end_df, recurring_df) based on Tags/Tag."""
     tag_col = "Tags" if "Tags" in df.columns else ("Tag" if "Tag" in df.columns else None)
     if tag_col is None:
         return df.copy(), df.iloc[0:0].copy()
@@ -85,13 +133,12 @@ def split_frontend(df: pd.DataFrame):
     return df.loc[~is_rec].copy(), df.loc[is_rec].copy()
 
 def calc_cogs(df: pd.DataFrame, debug=False):
-    if df.empty: 
+    if df.empty:
         return 0.0, []
-    # find country col
     for c in COUNTRY_COLS:
         if c in df.columns: country_col = c; break
     else: raise ValueError("No shipping country column found in CSV.")
-    # prep
+
     df = df.copy()
     df["qty"] = pd.to_numeric(df["Lineitem quantity"], errors="coerce").fillna(0).astype(int)
     df["Country"] = df[country_col].map(COUNTRY_MAP).fillna(df[country_col])
@@ -118,12 +165,10 @@ def calc_cogs(df: pd.DataFrame, debug=False):
 def calc_revenue_and_fees(df: pd.DataFrame, gbp_to_usd: float):
     if df.empty:
         return 0.0, 0.0, 0.0, 0.0
-    # Revenue (GBP) column detection
     revenue_col = next((c for c in ["Total", "Total Sales", "Total (GBP)", "Total Price"] if c in df.columns), None)
     if revenue_col:
         revenue_gbp = pd.to_numeric(df[revenue_col], errors="coerce").fillna(0).sum()
     elif "Lineitem price" in df.columns:
-        # fallback: line price * qty
         qty = pd.to_numeric(df.get("Lineitem quantity", 0), errors="coerce").fillna(0).astype(float)
         price = pd.to_numeric(df["Lineitem price"], errors="coerce").fillna(0).astype(float)
         revenue_gbp = float((price * qty).sum())
@@ -131,7 +176,7 @@ def calc_revenue_and_fees(df: pd.DataFrame, gbp_to_usd: float):
         revenue_gbp = 0.0
 
     revenue_usd = revenue_gbp * gbp_to_usd
-    fees_usd = ((revenue_usd * 0.028 + 0.3) * 1.1) + ((revenue_usd * 0.02) * 1.1)  # your formula
+    fees_usd = ((revenue_usd * 0.028 + 0.3) * 1.1) + ((revenue_usd * 0.02) * 1.1)
     net_after_fees_usd = revenue_usd - fees_usd
     return round(revenue_gbp,2), round(revenue_usd,2), round(fees_usd,2), round(net_after_fees_usd,2)
 
@@ -140,38 +185,34 @@ def pill(number, label, sub=None, state="neutral"):
     sub_html = f'<div class="sub">{sub}</div>' if sub else ""
     return f'<div class="{cls}"><div class="label">{label}</div><div class="value">{number}</div>{sub_html}</div>'
 
-# ------------------------- HEADER + INPUTS -------------------------
+# ------------------------- UI -------------------------
 st.title("Rhóms Profitability Dashboard")
-st.caption("Upload a Shopify orders CSV and enter Ad Spend. Results show blended and front-end profitability at a glance.")
+st.caption("Drop your Shopify CSV + Ad Spend. See blended & front-end profitability in one glance.")
 
-# Centered inputs (CSV + Ad Spend)
-c1, c2 = st.columns([1,1])
-with c1: 
+# Centered hero inputs
+colA, colB = st.columns([1,1])
+with colA:
     file = st.file_uploader("Shopify CSV", type=["csv"], label_visibility="visible")
-with c2:
+with colB:
     ad_spend_usd = st.number_input("Ad Spend (USD)", value=0.00, min_value=0.00, step=10.00, format="%.2f", label_visibility="visible")
 
-# Optional controls in expander
-with st.expander("More details & settings"):
+# Details / settings expander (kept dark & minimal)
+with st.expander("Details & Settings"):
     fx = st.number_input("GBP → USD rate", value=1.30, step=0.01, format="%.2f")
     show_debug = st.toggle("Show per-order breakdown", value=False)
-    st.markdown('<div class="fxchip">Using FX £→$ = {:.2f}</div>'.format(fx), unsafe_allow_html=True)
+    st.markdown(f'<span class="fxchip"><span class="dot"></span> FX £→$ = {fx:.2f}</span>', unsafe_allow_html=True)
 
-# Default FX if user never opens expander
-if 'fx' not in locals():
-    fx = 1.30
-if 'show_debug' not in locals():
-    show_debug = False
+if 'fx' not in locals(): fx = 1.30
+if 'show_debug' not in locals(): show_debug = False
 
-# ------------------------- MAIN -------------------------
+# ------------------------- MAIN CALC -------------------------
 if file:
     df = pd.read_csv(file)
 
     # Split front-end vs recurring
     df_front, df_rec = split_frontend(df)
-    total_orders = df["Name"].nunique() if "Name" in df.columns else len(df.drop_duplicates())
 
-    # ---- BLENDED (all orders) ----
+    # ---- BLENDED ----
     total_cogs_usd, logs = calc_cogs(df, debug=show_debug)
     revenue_gbp, revenue_usd, fees_usd, net_after_fees = calc_revenue_and_fees(df, fx)
     gross_profit = revenue_usd - fees_usd - total_cogs_usd
@@ -182,17 +223,17 @@ if file:
     fe_cogs_usd, _ = calc_cogs(df_front, debug=False)
     fe_rev_gbp, fe_rev_usd, fe_fees_usd, fe_net_after_fees = calc_revenue_and_fees(df_front, fx)
     fe_gross_profit = fe_rev_usd - fe_fees_usd - fe_cogs_usd
-    fe_overall_profit = fe_gross_profit - ad_spend_usd  # all ad spend attributed to acquisition
+    fe_overall_profit = fe_gross_profit - ad_spend_usd
     nc_roas = (fe_rev_usd / ad_spend_usd) if ad_spend_usd > 0 else None
 
-    # Header chip (FX)
-    st.markdown(f'<div class="fxchip">FX £→$ = {fx:.2f}</div>', unsafe_allow_html=True)
+    # Header FX chip
+    st.markdown(f'<span class="fxchip"><span class="dot"></span> FX £→$ = {fx:.2f}</span>', unsafe_allow_html=True)
     st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 
-    # ---------------- Row 1: BLENDED (4 pills) ----------------
+    # -------- Row 1: BLENDED (4 pills) --------
     state_overall = "pos" if overall_profit > 0 else ("neg" if overall_profit < 0 else "neutral")
     r1 = [
-        pill(f"${net_after_fees:,.2f}", "Net Revenue (USD)", sub=f"£{revenue_gbp:,.2f} – fees"),
+        pill(f"${net_after_fees:,.2f}", "Net Revenue (USD)", sub=f"£{revenue_gbp:,.2f} – after fees"),
         pill(f"${total_cogs_usd:,.2f}", "COGS (USD)"),
         pill(f"${ad_spend_usd:,.2f}", "Ad Spend (USD)"),
         pill(f"${overall_profit:,.2f}" if overall_profit>=0 else f"-${abs(overall_profit):,.2f}",
@@ -200,28 +241,27 @@ if file:
     ]
     st.markdown('<div class="row-4">' + "".join(r1) + '</div>', unsafe_allow_html=True)
 
-    # ---------------- Row 2: FRONT-END (3 pills) ----------------
+    # -------- Row 2: FRONT-END (3 pills) --------
     state_fe = "pos" if fe_overall_profit > 0 else ("neg" if fe_overall_profit < 0 else "neutral")
     r2 = [
-        pill(f"${fe_net_after_fees:,.2f}", "Net Revenue (USD) — NC", sub=f"£{fe_rev_gbp:,.2f} – fees"),
+        pill(f"${fe_net_after_fees:,.2f}", "Net Revenue (USD) — NC", sub=f"£{fe_rev_gbp:,.2f} – after fees"),
         pill(f"${fe_cogs_usd:,.2f}", "COGS (USD) — NC"),
         pill(f"${fe_overall_profit:,.2f}" if fe_overall_profit>=0 else f"-${abs(fe_overall_profit):,.2f}",
              "Profit/Loss (USD) — NC", state=state_fe),
     ]
     st.markdown('<div class="row-3">' + "".join(r2) + '</div>', unsafe_allow_html=True)
 
-    # ---------------- Row 3: ROAS (2 big pills) ----------------
+    # -------- Row 3: ROAS (2 big pills) --------
     roas_blend_text = f"{blended_roas:,.2f}×" if blended_roas is not None else "–"
     roas_nc_text = f"{nc_roas:,.2f}×" if nc_roas is not None else "–"
     r3 = [
-        pill(roas_blend_text, "Blended ROAS", sub="Revenue ÷ Ad Spend"),
-        pill(roas_nc_text, "NC ROAS", sub="Front-end Revenue ÷ Ad Spend"),
+        pill(roas_blend_text, "Blended ROAS", sub="Revenue ÷ Ad Spend", state="pos" if blended_roas and blended_roas>=1 else "neg" if blended_roas else "neutral"),
+        pill(roas_nc_text, "NC ROAS", sub="Front-end Revenue ÷ Ad Spend", state="pos" if nc_roas and nc_roas>=1 else "neg" if nc_roas else "neutral"),
     ]
     st.markdown('<div class="row-2">' + "".join(r3) + '</div>', unsafe_allow_html=True)
 
-    # ---------------- Details Expander ----------------
-    with st.expander("More details (open if you need them)"):
-        st.write(f"**Orders uploaded:** {total_orders}")
+    # -------- Details Expander (optional) --------
+    with st.expander("More details (open if needed)"):
         st.write(f"**Revenue (GBP):** £{revenue_gbp:,.2f}")
         st.write(f"**Revenue (USD):** ${revenue_usd:,.2f}")
         st.write(f"**Shopify Fees (USD):** ${fees_usd:,.2f}")
@@ -233,16 +273,16 @@ if file:
         st.write(f"**Front-end Fees (USD):** ${fe_fees_usd:,.2f}")
         st.write(f"**Front-end Net after Fees (USD):** ${fe_net_after_fees:,.2f}")
         st.write(f"**Front-end Gross Profit (USD):** ${fe_gross_profit:,.2f}")
-        if show_debug:
+        if show_debug and not df.empty:
             st.write("---")
             st.subheader("Per-order COGS breakdown (debug)")
             _, logs_all = calc_cogs(df, debug=True)
             for l in logs_all: st.write(l)
 
 else:
-    # guide when nothing uploaded
+    # onboarding state
     st.markdown('<div class="center">', unsafe_allow_html=True)
     st.markdown('<div class="pill inputbox"><div class="label">Step 1</div><div class="value">Upload Shopify CSV</div></div>', unsafe_allow_html=True)
     st.markdown('<div class="pill inputbox"><div class="label">Step 2</div><div class="value">Enter Ad Spend (USD)</div></div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
-    st.caption("Once both are set, your blended and front-end profitability will appear instantly, without scrolling.")
+    st.caption("Once both are set, your blended and front-end profitability will appear instantly.")
