@@ -97,6 +97,24 @@ h1{font-size:2.4rem!important; letter-spacing:.3px; margin:.1rem 0 .8rem}
 
 /* Compact Streamlit internal labels (optional) */
 .st-emotion-cache-1c7y2kd, .st-emotion-cache-1p2eins{ font-size:.9rem; }
+
+/* chip row */
+.chips{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+
+/* date chip (matches fxchip but with a calendar accent) */
+.datechip{
+  display:inline-flex; gap:8px; align-items:center; font-size:.82rem; color:var(--text);
+  background:linear-gradient(180deg, #151c28, #0e1420);
+  border:1px solid var(--border); padding:6px 10px; border-radius:999px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+}
+.datechip .cal{width:10px; height:10px; background:var(--lime); border-radius:2px;
+  box-shadow:0 0 10px rgba(164,219,50,.6); display:inline-block; position:relative}
+.datechip .cal:before{
+  content:""; position:absolute; left:-2px; top:-2px; width:14px; height:3px;
+  background:var(--lime); border-radius:3px; opacity:.9;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -195,6 +213,42 @@ def pill(number, label, sub=None, state="neutral"):
     sub_html = f'<div class="sub">{sub}</div>' if sub else ""
     return f'<div class="{cls}"><div class="label">{label}</div><div class="value">{number}</div>{sub_html}</div>'
 
+
+# ---- Date range helpers ----
+DATE_COL_CANDIDATES = [
+    "Created at", "Created At", "Processed at", "Order Date", "Order Created At",
+    "下单时间"  # seen in your screenshots
+]
+
+def extract_date_series(df: pd.DataFrame) -> pd.Series:
+    """Return a parsed datetime series from the first matching date column."""
+    for col in DATE_COL_CANDIDATES:
+        if col in df.columns:
+            s = pd.to_datetime(df[col], errors="coerce", infer_datetime_format=True, utc=False)
+            if s.notna().any():
+                return s
+    # fallback: try any column with 'date' or 'created' in name
+    for col in df.columns:
+        if any(k in col.lower() for k in ["date", "created", "processed"]):
+            s = pd.to_datetime(df[col], errors="coerce", infer_datetime_format=True, utc=False)
+            if s.notna().any():
+                return s
+    return pd.Series(dtype="datetime64[ns]")
+
+def pretty_range(dmin: pd.Timestamp, dmax: pd.Timestamp) -> str:
+    if pd.isna(dmin) or pd.isna(dmax):
+        return "No dates found"
+    dmin = pd.to_datetime(dmin)
+    dmax = pd.to_datetime(dmax)
+    if dmin.date() == dmax.date():
+        return dmin.strftime("%b %d, %Y")
+    if dmin.year == dmax.year:
+        if dmin.month == dmax.month:
+            return f"{dmin.strftime('%b %d')} → {dmax.strftime('%d, %Y')}"
+        return f"{dmin.strftime('%b %d')} → {dmax.strftime('%b %d, %Y')}"
+    return f"{dmin.strftime('%b %d, %Y')} → {dmax.strftime('%b %d, %Y')}"
+
+
 # ------------------------- UI -------------------------
 st.title("Rhóms Profitability Dashboard")
 st.caption("Drop your Shopify CSV + Ad Spend. See blended & front-end profitability in one glance.")
@@ -224,6 +278,12 @@ if 'show_debug' not in locals(): show_debug = False
 if file:
     df = pd.read_csv(file)
 
+    # Date range chip (first/last order)
+    ds = extract_date_series(df)
+    dmin, dmax = (ds.min(), ds.max()) if not ds.empty else (pd.NaT, pd.NaT)
+    date_chip_text = pretty_range(dmin, dmax)
+
+
     # Split front-end vs recurring
     df_front, df_rec = split_frontend(df)
 
@@ -242,8 +302,17 @@ if file:
     nc_roas = (fe_rev_usd / ad_spend_usd) if ad_spend_usd > 0 else None
 
     # Header FX chip
-    st.markdown(f'<span class="fxchip"><span class="dot"></span> FX £→$ = {fx:.2f}</span>', unsafe_allow_html=True)
+    st.markdown(
+        f'''
+        <div class="chips">
+          <span class="fxchip"><span class="dot"></span> FX £→$ = {fx:.2f}</span>
+          <span class="datechip"><span class="cal"></span> {date_chip_text}</span>
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
     st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
+
 
     # -------- Row 1: BLENDED (4 pills) --------
     state_overall = "pos" if overall_profit > 0 else ("neg" if overall_profit < 0 else "neutral")
