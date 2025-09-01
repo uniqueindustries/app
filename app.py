@@ -13,81 +13,52 @@ st.set_page_config(
 # Dark mode + lime accent + condensed headline stack (Futura-Condensed first, with solid fallbacks)
 st.markdown("""
 <style>
-:root{
-  --bg:#0b0f15;
-  --panel:#121826;
-  --panel-2:#0f1520;
-  --text:#e5e7eb;
-  --muted:#9aa4b2;
-  --border:#1f2937;
-  --lime:#A4DB32;
-  --lime-weak:#c9f27a33;
-  --red:#ef4444;
-  --red-soft:#7f1d1d;
-  --green:#22c55e;
-  --green-soft:#052e16;
+/* ===== HERO INPUTS (lime, huge, glowing) ===== */
+.hero-row{display:grid; grid-template-columns: 1.7fr 1fr; gap:16px; margin:14px 0 18px;}
+
+.hero-pil{
+  border-radius:18px; background:var(--panel); border:1px solid var(--border);
+  box-shadow:0 10px 28px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.03), 0 0 20px rgba(164,219,50,.08);
+  padding:18px; transition:box-shadow .2s, border-color .2s;
+}
+.hero-pil:hover{
+  border-color: var(--lime);
+  box-shadow:0 12px 32px rgba(0,0,0,.45), 0 0 0 1px rgba(164,219,50,.25), 0 0 28px rgba(164,219,50,.15);
+}
+.hero-label{font-size:.95rem; font-weight:700; color:var(--muted); margin:0 0 6px 2px;}
+
+.hero-pil .big{ font-size:1.1rem; }
+
+/* File uploader (lime accent) */
+.hero-pil [data-testid="stFileUploader"] > div{
+  background:linear-gradient(180deg,#151c28,#0e1420);
+  border:1px dashed var(--lime); border-radius:14px;
+  padding:18px; box-shadow: inset 0 0 0 1px rgba(164,219,50,.12);
+}
+.hero-pil [data-testid="stFileUploader"] button{
+  border:1px solid var(--lime); color:var(--text); background:transparent;
+}
+.hero-pil [data-testid="stFileUploader"] button:hover{
+  background: rgba(164,219,50,.08);
 }
 
-/* base */
-html, body, .block-container{background:var(--bg); color:var(--text);}
-.block-container{padding-top:1.6rem; padding-bottom:2rem; max-width:1100px;}
-/* headline: Futura Condensed (if installed) -> similar condensed fallbacks */
-h1, h2, h3, .hero, .value {
-  font-family: "Futura-Condensed", "Futura Condensed", "Impact", "Oswald", "Barlow Condensed", "Arial Narrow", system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+/* Number input (lime border + glow) */
+.hero-pil .stNumberInput > div > div{
+  background:linear-gradient(180deg,#151c28,#0e1420);
+  border:1px solid var(--lime); border-radius:14px;
+  box-shadow: inset 0 0 0 1px rgba(164,219,50,.12), 0 0 16px rgba(164,219,50,.10);
 }
-h1{font-size:2.4rem!important; letter-spacing:.3px; margin:.1rem 0 .8rem}
-.caption{color:var(--muted)}
+.hero-pil .stNumberInput input{
+  color:var(--text); font-size:1.4rem; font-weight:800; padding:16px 14px;
+}
+.hero-pil .stNumberInput svg{ color:var(--text); }  /* + / – icons */
 
-/* grid rows */
-.row-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:14px 0 10px}
-.row-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0 10px}
-.row-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:14px 0 10px}
+/* Make the two labels align vertically nicer */
+.hero-pil .stFileUploader, .hero-pil .stNumberInput{ margin-top:6px; }
 
-/* pills (cards) */
-.pill{
-  border-radius:14px; background:var(--panel); border:1px solid var(--border);
-  padding:16px 18px; box-shadow:0 8px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.02);
-}
-.pill .label{
-  font-size:.82rem; color:var(--muted); letter-spacing:.2px; margin-bottom:.25rem; font-weight:600;
-}
-.pill .value{
-  font-weight:900; font-size:2.2rem; line-height:1.05; color:var(--text);
-  text-shadow: 0 0 12px rgba(164,219,50,.08);
-}
-.pill .sub{color:#aab4c2; font-size:.86rem; margin-top:.35rem}
+/* Compact labels elsewhere */
+.st-emotion-cache-1c7y2kd, .st-emotion-cache-1p2eins{ font-size:.9rem; }
 
-.fxchip{
-  display:inline-flex; gap:8px; align-items:center; font-size:.82rem; color:var(--text);
-  background:linear-gradient(180deg, #151c28, #0e1420);
-  border:1px solid var(--border); padding:6px 10px; border-radius:999px;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
-}
-.fxchip .dot{width:8px; height:8px; background:var(--lime); border-radius:999px; box-shadow:0 0 10px var(--lime);}
-
-.hr{height:1px; background:var(--border); margin:12px 0 6px; opacity:.6}
-
-/* STATES: profit */
-.pill.positive{ border:1px solid var(--lime); box-shadow:0 0 0 1px var(--lime-weak), 0 8px 24px rgba(0,0,0,.25); }
-.pill.positive .value{ color:var(--lime); text-shadow:0 0 16px rgba(164,219,50,.35); }
-.pill.negative{ border:1px solid var(--red); background:linear-gradient(180deg, #1b1111, var(--panel)); }
-.pill.negative .value{ color:#ff7a7a; text-shadow:0 0 10px rgba(239,68,68,.35); }
-
-/* input panels */
-.center{display:flex;justify-content:center;gap:16px;flex-wrap:wrap}
-.inputbox{
-  min-width:340px; background:var(--panel-2); border:1px dashed var(--border); text-align:center;
-}
-.inputbox .value{font-size:1.6rem}
-
-/* Streamlit widgets tweaks */
-.stSlider > div > div > div > div{ background:var(--lime) !important; }
-.stButton>button, .stDownloadButton>button{
-  background:var(--panel); color:var(--text); border:1px solid var(--border);
-}
-.stButton>button:hover, .stDownloadButton>button:hover{
-  border-color:var(--lime); color:var(--lime);
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -189,12 +160,26 @@ def pill(number, label, sub=None, state="neutral"):
 st.title("Rhóms Profitability Dashboard")
 st.caption("Drop your Shopify CSV + Ad Spend. See blended & front-end profitability in one glance.")
 
-# Centered hero inputs
-colA, colB = st.columns([1,1])
-with colA:
-    file = st.file_uploader("Shopify CSV", type=["csv"], label_visibility="visible")
-with colB:
-    ad_spend_usd = st.number_input("Ad Spend (USD)", value=0.00, min_value=0.00, step=10.00, format="%.2f", label_visibility="visible")
+# ===== HERO INPUTS ROW =====
+st.markdown('<div class="hero-row">', unsafe_allow_html=True)
+
+# Left: CSV (wider)
+col_left, col_right = st.columns([1, 1])  # we only use these to mount widgets; sizing is CSS grid above
+with col_left:
+    st.markdown('<div class="hero-pil">', unsafe_allow_html=True)
+    st.markdown('<div class="hero-label">Shopify CSV</div>', unsafe_allow_html=True)
+    file = st.file_uploader(" ", type=["csv"], label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Right: Ad Spend (narrower)
+with col_right:
+    st.markdown('<div class="hero-pil">', unsafe_allow_html=True)
+    st.markdown('<div class="hero-label">Ad Spend (USD)</div>', unsafe_allow_html=True)
+    ad_spend_usd = st.number_input(" ", value=0.00, min_value=0.00, step=10.00,
+                                   format="%.2f", label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Details / settings expander (kept dark & minimal)
 with st.expander("Details & Settings"):
