@@ -29,6 +29,14 @@ h1{font-size:2.1rem!important;margin-bottom:.4rem}
 </style>
 """, unsafe_allow_html=True)
 
+.pill.negative {
+  border: 1px solid #fca5a5;
+  background: #fef2f2;
+}
+.pill.negative .value {
+  color: #dc2626;
+}
+
 
 st.title("Rhóms COGS Calculator")
 st.caption("Upload a Shopify orders CSV for any date. I’ll output **Total COGS (USD)**, **Revenue (GBP & USD)**, and **Shopify Fees (USD)**.")
@@ -134,7 +142,7 @@ if file:
     net_after_fees = max(revenue_usd - fees_usd, 0)  # just a display nicety
     gross_profit = max(revenue_usd - fees_usd - total_cogs_usd, 0)
 
-    overall_profit = max(gross_profit - ad_spend_usd, 0)  # clamp at 0 for display nicety
+    overall_profit = gross_profit - ad_spend_usd
     roas = (revenue_usd / ad_spend_usd) if ad_spend_usd > 0 else None
 
 
@@ -183,10 +191,17 @@ if file:
     st.markdown(f'''
     <div class="pill"><div class="label">Ad Spend (USD)</div>
     <div class="value">${ad_spend_usd:,.2f}</div></div>''', unsafe_allow_html=True)
+    # Overall Profit pill with red styling if negative
+    profit_class = "pill" if overall_profit >= 0 else "pill negative"
+    profit_value = f"${overall_profit:,.2f}" if overall_profit >= 0 else f"-${abs(overall_profit):,.2f}"
+    
     st.markdown(f'''
-    <div class="pill"><div class="label">Overall Profit (USD)</div>
-    <div class="value">${overall_profit:,.2f}</div>
-    <div class="small">Gross Profit – Ad Spend</div></div>''', unsafe_allow_html=True)
+    <div class="{profit_class}">
+      <div class="label">Overall Profit (USD)</div>
+      <div class="value">{profit_value}</div>
+      <div class="small">Gross Profit – Ad Spend</div>
+    </div>''', unsafe_allow_html=True)
+
     
     # ROAS (only if ad spend > 0)
     if roas is not None:
