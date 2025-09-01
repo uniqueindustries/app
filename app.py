@@ -13,20 +13,63 @@ st.set_page_config(
 # Dark mode + lime accent + condensed headline stack (Futura-Condensed first, with solid fallbacks)
 st.markdown("""
 <style>
+:root{
+  --bg:#0b0f15;
+  --panel:#121826;
+  --panel-2:#0f1520;
+  --text:#e5e7eb;
+  --muted:#9aa4b2;
+  --border:#1f2937;
+  --lime:#A4DB32;
+  --lime-weak:#c9f27a33;
+  --red:#ef4444;
+}
+
+/* Base layout / typography */
+html, body, .block-container{background:var(--bg); color:var(--text);}
+.block-container{padding-top:1.6rem; padding-bottom:2rem; max-width:1100px;}
+h1{font-size:2.4rem!important; letter-spacing:.3px; margin:.1rem 0 .8rem}
+.caption{color:var(--muted)}
+
+/* Grid rows for KPI pills */
+.row-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:14px 0 10px}
+.row-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0 10px}
+.row-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:14px 0 10px}
+
+/* KPI pills */
+.pill{
+  border-radius:14px; background:var(--panel); border:1px solid var(--border);
+  padding:16px 18px; box-shadow:0 8px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.02);
+}
+.pill .label{font-size:.82rem; color:var(--muted); letter-spacing:.2px; margin-bottom:.25rem; font-weight:600;}
+.pill .value{font-weight:900; font-size:2.2rem; line-height:1.05; color:var(--text);}
+.pill .sub{color:#aab4c2; font-size:.86rem; margin-top:.35rem}
+.pill.positive{ border:1px solid var(--lime); box-shadow:0 0 0 1px var(--lime-weak), 0 8px 24px rgba(0,0,0,.25); }
+.pill.positive .value{ color:var(--lime); }
+.pill.negative{ border:1px solid var(--red); background:linear-gradient(180deg, #1b1111, var(--panel)); }
+.pill.negative .value{ color:#ff7a7a; }
+
+/* FX chip */
+.fxchip{
+  display:inline-flex; gap:8px; align-items:center; font-size:.82rem; color:var(--text);
+  background:linear-gradient(180deg, #151c28, #0e1420);
+  border:1px solid var(--border); padding:6px 10px; border-radius:999px;
+}
+.fxchip .dot{width:8px; height:8px; background:var(--lime); border-radius:999px; box-shadow:0 0 10px var(--lime);}
+.hr{height:1px; background:var(--border); margin:12px 0 6px; opacity:.6}
+
 /* ===== HERO INPUTS (lime, huge, glowing) ===== */
 .hero-row{display:grid; grid-template-columns: 1.7fr 1fr; gap:16px; margin:14px 0 18px;}
-
 .hero-pil{
   border-radius:18px; background:var(--panel); border:1px solid var(--border);
-  box-shadow:0 10px 28px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.03), 0 0 20px rgba(164,219,50,.08);
+  box-shadow:0 10px 28px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.03), 0 0 20px rgba(164,219,50,.10);
   padding:18px; transition:box-shadow .2s, border-color .2s;
 }
 .hero-pil:hover{
   border-color: var(--lime);
-  box-shadow:0 12px 32px rgba(0,0,0,.45), 0 0 0 1px rgba(164,219,50,.25), 0 0 28px rgba(164,219,50,.15);
+  box-shadow:0 12px 32px rgba(0,0,0,.45), 0 0 0 1px rgba(164,219,50,.25), 0 0 28px rgba(164,219,50,.20);
 }
-.hero-label{font-size:.95rem; font-weight:700; color:var(--muted); margin:0 0 6px 2px;}
-
+.hero-label{font-size:1rem; font-weight:800; color:var(--muted); margin:0 0 6px 2px;}
 .hero-pil .big{ font-size:1.1rem; }
 
 /* File uploader (lime accent) */
@@ -38,9 +81,7 @@ st.markdown("""
 .hero-pil [data-testid="stFileUploader"] button{
   border:1px solid var(--lime); color:var(--text); background:transparent;
 }
-.hero-pil [data-testid="stFileUploader"] button:hover{
-  background: rgba(164,219,50,.08);
-}
+.hero-pil [data-testid="stFileUploader"] button:hover{ background: rgba(164,219,50,.08); }
 
 /* Number input (lime border + glow) */
 .hero-pil .stNumberInput > div > div{
@@ -49,18 +90,18 @@ st.markdown("""
   box-shadow: inset 0 0 0 1px rgba(164,219,50,.12), 0 0 16px rgba(164,219,50,.10);
 }
 .hero-pil .stNumberInput input{
-  color:var(--text); font-size:1.4rem; font-weight:800; padding:16px 14px;
+  color:var(--text); font-size:1.6rem; font-weight:900; padding:16px 14px;
 }
 .hero-pil .stNumberInput svg{ color:var(--text); }  /* + / – icons */
 
-/* Make the two labels align vertically nicer */
+/* Align labels consistently */
 .hero-pil .stFileUploader, .hero-pil .stNumberInput{ margin-top:6px; }
 
-/* Compact labels elsewhere */
+/* Compact Streamlit internal labels (optional) */
 .st-emotion-cache-1c7y2kd, .st-emotion-cache-1p2eins{ font-size:.9rem; }
-
 </style>
 """, unsafe_allow_html=True)
+
 
 # ------------------------- CONFIG / MAPPINGS -------------------------
 MAIN_COST_TABLE = {
