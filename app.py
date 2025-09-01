@@ -136,15 +136,23 @@ if file:
     # Row 1
     st.markdown('<div class="row">', unsafe_allow_html=True)
     st.markdown(f'''
-    <div class="pill"><div class="label">Revenue (GBP)</div>
-    <div class="value">£{revenue_gbp:,.2f}</div></div>''', unsafe_allow_html=True)
+    <div class="pill">
+      <div class="label">Revenue (USD)</div>
+      <div class="value">${revenue_usd:,.2f}</div>
+      <div class="small">£{revenue_gbp:,.2f}</div>
+    </div>''', unsafe_allow_html=True)
     st.markdown(f'''
-    <div class="pill"><div class="label">Revenue (USD)</div>
-    <div class="value">${revenue_usd:,.2f}</div></div>''', unsafe_allow_html=True)
+    <div class="pill">
+      <div class="label">Shopify Fees (USD)</div>
+      <div class="value">${fees_usd:,.2f}</div>
+    </div>''', unsafe_allow_html=True)
     st.markdown(f'''
-    <div class="pill"><div class="label">Shopify Fees (USD)</div>
-    <div class="value">${fees_usd:,.2f}</div></div>''', unsafe_allow_html=True)
+    <div class="pill">
+      <div class="label">Total COGS (USD)</div>
+      <div class="value">${total_cogs_usd:,.2f}</div>
+    </div>''', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
+
 
     # Row 2
     st.markdown('<div class="row">', unsafe_allow_html=True)
