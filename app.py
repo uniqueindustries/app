@@ -120,6 +120,23 @@ def calc_revenue_and_fees(df: pd.DataFrame, gbp_to_usd: float):
     fees_usd = ((revenue_usd * 0.028 + 0.3) * 1.1) + ((revenue_usd * 0.02) * 1.1)
     return round(revenue_gbp,2), round(revenue_usd,2), round(fees_usd,2)
 
+# ------------------------- FRONT-END SPLIT -------------------------
+RECURRING_TAG = "Subscription Recurring Order"  # provided by you
+
+def split_frontend(df: pd.DataFrame, recurring_tag: str = RECURRING_TAG):
+    """
+    Returns (df_frontend, df_recurring) based on Tags/Tag column.
+    If no tag column exists, treat everything as front-end (non-recurring).
+    """
+    tag_col = "Tags" if "Tags" in df.columns else ("Tag" if "Tag" in df.columns else None)
+    if tag_col is None:
+        return df.copy(), df.iloc[0:0].copy()  # no tags -> everything treated as front-end
+
+    tags = df[tag_col].astype(str)
+    is_recurring = tags.str.contains(recurring_tag, case=False, na=False)
+    return df.loc[~is_recurring].copy(), df.loc[is_recurring].copy()
+
+
 # ------------------------- SIDEBAR CONTROLS -------------------------
 with st.sidebar:
     st.subheader("Settings")
@@ -138,6 +155,15 @@ file = st.file_uploader("Upload Shopify CSV", type=["csv"])
 
 if file:
     df = pd.read_csv(file)
+
+    # Split: front-end (exclude recurring) vs recurring
+    df_front, df_rec = split_frontend(df)
+
+    # Totals (orders count) for context
+    total_orders = df["Name"].nunique()
+    front_orders = df_front["Name"].nunique()
+
+    
     total_cogs_usd, logs = calc_cogs(df, debug=show_debug)
     revenue_gbp, revenue_usd, fees_usd = calc_revenue_and_fees(df, fx)
     net_after_fees = max(revenue_usd - fees_usd, 0)  # just a display nicety
@@ -145,6 +171,16 @@ if file:
 
     overall_profit = gross_profit - ad_spend_usd
     roas = (revenue_usd / ad_spend_usd) if ad_spend_usd > 0 else None
+
+    # ---- FRONT-END (non-recurring) ----
+    fe_cogs_usd, _ = calc_cogs(df_front, debug=False)
+    fe_rev_gbp, fe_rev_usd, fe_fees_usd = calc_revenue_and_fees(df_front, fx)
+    fe_net_after_fees = fe_rev_usd - fe_fees_usd
+    fe_gross_profit = fe_rev_usd - fe_fees_usd - fe_cogs_usd
+
+    # Ad spend is for acquisition, so attribute ALL ad spend to front-end by default
+    fe_overall_profit = fe_gross_profit - ad_spend_usd
+    fe_roas = (fe_rev_usd / ad_spend_usd) if ad_spend_usd > 0 else None
 
 
     # --- KPI pills layout ---
@@ -196,6 +232,75 @@ if file:
     else:
         profit_class = "pill"
         profit_value = "$0.00"
+
+
+    # ---------- FRONT-END (Non-Recurring) ----------
+    st.markdown("### Front-end Profitability (Non-Recurring)")
+    st.caption(f"Excludes orders where Tags contain **“{RECURRING_TAG}”** · "
+               f"{front_orders}/{total_orders} orders in this upload")
+
+    # Row FE-1: Revenue, Fees, COGS
+    st.markdown('<div class="row">', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="pill">
+      <div class="label">Revenue (USD)</div>
+      <div class="value">${fe_rev_usd:,.2f}</div>
+      <div class="small">£{fe_rev_gbp:,.2f}</div>
+    </div>''', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="pill">
+      <div class="label">Shopify Fees (USD)</div>
+      <div class="value">${fe_fees_usd:,.2f}</div>
+    </div>''', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="pill">
+      <div class="label">Total COGS (USD)</div>
+      <div class="value">${fe_cogs_usd:,.2f}</div>
+    </div>''', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Row FE-2: Net after Fees, Gross Profit, Ad Spend (same input)
+    st.markdown('<div class="row">', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="pill"><div class="label">Net after Fees (USD)</div>
+    <div class="value">${fe_net_after_fees:,.2f}</div>
+    <div class="small">Revenue USD – Fees</div></div>''', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="pill"><div class="label">Gross Profit (USD)</div>
+    <div class="value">${fe_gross_profit:,.2f}</div>
+    <div class="small">Revenue USD – Fees – COGS</div></div>''', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="pill"><div class="label">Ad Spend (USD)</div>
+    <div class="value">${ad_spend_usd:,.2f}</div>
+    <div class="small">Assumed fully allocated to front-end</div></div>''', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Row FE-3: Overall Profit (colored), ROAS
+    fe_profit_class = "pill positive" if fe_overall_profit > 0 else ("pill negative" if fe_overall_profit < 0 else "pill")
+    fe_profit_value = (
+        f"${fe_overall_profit:,.2f}" if fe_overall_profit >= 0 else f"-${abs(fe_overall_profit):,.2f}"
+    )
+
+    st.markdown('<div class="row">', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="{fe_profit_class}">
+      <div class="label">Overall Profit (USD)</div>
+      <div class="value">{fe_profit_value}</div>
+      <div class="small">Front-end Gross Profit – Ad Spend</div>
+    </div>''', unsafe_allow_html=True)
+
+    if fe_roas is not None:
+        st.markdown(f'''
+        <div class="pill"><div class="label">ROAS (Front-end)</div>
+        <div class="value">{fe_roas:,.2f}×</div>
+        <div class="small">Front-end Revenue ÷ Ad Spend</div></div>''', unsafe_allow_html=True)
+    else:
+        st.markdown('''
+        <div class="pill"><div class="label">ROAS (Front-end)</div>
+        <div class="value">–</div>
+        <div class="small">Set Ad Spend to see ROAS</div></div>''', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
 
     
     st.markdown('<div class="row">', unsafe_allow_html=True)
