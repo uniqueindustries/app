@@ -71,8 +71,22 @@ if file:
 # --- Revenue & Shopify Fees ---
 GBP_TO_USD = 1.3  # fixed conversion rate
 
-# Revenue in GBP from Shopify CSV
-revenue_gbp = pd.to_numeric(df["Total"], errors="coerce").fillna(0).sum()
+# Try to find a revenue column
+revenue_col_candidates = ["Total", "Total Sales", "Total (GBP)", "Total Price"]
+revenue_col = None
+for c in revenue_col_candidates:
+    if c in df.columns:
+        revenue_col = c
+        break
+
+if revenue_col:
+    revenue_gbp = pd.to_numeric(df[revenue_col], errors="coerce").fillna(0).sum()
+else:
+    # fallback: compute from line item price × qty
+    if "Lineitem price" in df.columns:
+        revenue_gbp = (pd.to_numeric(df["Lineitem price"], errors="coerce").fillna(0) * df["qty"]).sum()
+    else:
+        revenue_gbp = 0.0
 
 # Convert to USD
 revenue_usd = revenue_gbp * GBP_TO_USD
