@@ -8,23 +8,27 @@ st.set_page_config(page_title="Rhóms COGS Calculator", page_icon="🧮", layout
 # Minimal CSS “cards”
 st.markdown("""
 <style>
-/* tighten default spacing */
-.block-container {padding-top: 2rem; padding-bottom: 3rem;}
-/* big title */
-h1 { font-size: 2.2rem !important; }
-.small { color: #6b7280; font-size: 0.9rem; }
-.card {
-  border-radius: 16px;
-  padding: 18px 18px 10px 18px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+.block-container{padding-top:2rem;padding-bottom:2.5rem;}
+h1{font-size:2.1rem!important;margin-bottom:.4rem}
+.caption{color:#6b7280}
+
+.pill{
+  border-radius:14px; background:#fff; border:1px solid #e5e7eb;
+  padding:14px 16px; box-shadow:0 1px 2px rgba(0,0,0,.03);
 }
-.kpi { font-weight: 700; font-size: 2rem; margin: 4px 0 0; }
-.kpi-label { color:#6b7280; font-size:.9rem; margin-bottom: .3rem;}
-hr {border: none; border-top: 1px solid #eee; margin: .8rem 0 1.2rem;}
+.pill .label{font-size:.78rem; color:#6b7280; letter-spacing:.2px; margin-bottom:.15rem}
+.pill .value{font-weight:800; font-size:1.6rem; line-height:1.15}
+.small{color:#94a3b8; font-size:.8rem; margin-top:.35rem}
+
+.row{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:10px 0 16px}
+.fxchip{
+  display:inline-flex; gap:6px; align-items:center; font-size:.78rem; color:#475569;
+  background:#f1f5f9; border:1px solid #e2e8f0; padding:4px 8px; border-radius:999px;
+}
+.hr{height:1px; background:#f1f5f9; margin:10px 0 6px}
 </style>
 """, unsafe_allow_html=True)
+
 
 st.title("Rhóms COGS Calculator")
 st.caption("Upload a Shopify orders CSV for any date. I’ll output **Total COGS (USD)**, **Revenue (GBP & USD)**, and **Shopify Fees (USD)**.")
