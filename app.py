@@ -67,3 +67,21 @@ if file:
     if debug and logs:
         st.subheader("Debug Log")
         for l in logs: st.write(l)
+
+# --- Revenue & Shopify Fees ---
+GBP_TO_USD = 1.3  # fixed conversion rate
+
+# Revenue in GBP from Shopify CSV
+revenue_gbp = pd.to_numeric(df["Total"], errors="coerce").fillna(0).sum()
+
+# Convert to USD
+revenue_usd = revenue_gbp * GBP_TO_USD
+
+# Shopify fees (calculated on USD revenue)
+fees = ((revenue_usd * 0.028 + 0.3) * 1.1) + ((revenue_usd * 0.02) * 1.1)
+
+# Display metrics
+st.metric("Total COGS (USD)", f"${total:,.2f}")
+st.metric("Revenue (GBP)", f"£{revenue_gbp:,.2f}")
+st.metric("Revenue (USD)", f"${revenue_usd:,.2f}")
+st.metric("Shopify Fees (USD)", f"${fees:,.2f}")
