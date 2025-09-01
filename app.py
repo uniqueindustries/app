@@ -119,6 +119,11 @@ with st.sidebar:
     show_debug = st.toggle("Show per-order breakdown", value=False)
     st.caption("Change the FX rate if needed. Debug shows per-order COGS.")
 
+    # NEW — Ad spend (USD)
+    ad_spend_usd = st.number_input("Ad spend (USD)", value=0.00, min_value=0.00, step=10.00, format="%.2f",
+                                   help="Total paid media spend for the uploaded period.")
+  
+
 # ------------------------- MAIN UI -------------------------
 file = st.file_uploader("Upload Shopify CSV", type=["csv"])
 
