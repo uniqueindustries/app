@@ -115,6 +115,11 @@ h1{font-size:2.4rem!important; letter-spacing:.3px; margin:.1rem 0 .8rem}
   background:var(--lime); border-radius:3px; opacity:.9;
 }
 
+/* slimmer slider line + lime handle */
+[data-baseweb="slider"] div[role="slider"]{ background: var(--lime) !important; }
+[data-baseweb="slider"] div[data-testid="stSliderThumbValue"]{ color: var(--text) !important; }
+
+
 </style>
 """, unsafe_allow_html=True)
 
