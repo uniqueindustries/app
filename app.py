@@ -63,39 +63,32 @@ debug = st.checkbox("Show per-order breakdown")
 if file:
     df = pd.read_csv(file)
     total, logs = calc_total(df, debug=debug)
-    st.metric("Total COGS", f"${total:,.2f}")
+
+    st.metric("Total COGS (USD)", f"${total:,.2f}")
     if debug and logs:
         st.subheader("Debug Log")
         for l in logs: st.write(l)
 
-# --- Revenue & Shopify Fees ---
-GBP_TO_USD = 1.3  # fixed conversion rate
+    # --- Revenue & Shopify Fees ---
+    GBP_TO_USD = 1.3  # fixed conversion rate
+    revenue_col_candidates = ["Total", "Total Sales", "Total (GBP)", "Total Price"]
+    revenue_col = None
+    for c in revenue_col_candidates:
+        if c in df.columns:
+            revenue_col = c
+            break
 
-# Try to find a revenue column
-revenue_col_candidates = ["Total", "Total Sales", "Total (GBP)", "Total Price"]
-revenue_col = None
-for c in revenue_col_candidates:
-    if c in df.columns:
-        revenue_col = c
-        break
-
-if revenue_col:
-    revenue_gbp = pd.to_numeric(df[revenue_col], errors="coerce").fillna(0).sum()
-else:
-    # fallback: compute from line item price × qty
-    if "Lineitem price" in df.columns:
-        revenue_gbp = (pd.to_numeric(df["Lineitem price"], errors="coerce").fillna(0) * df["qty"]).sum()
+    if revenue_col:
+        revenue_gbp = pd.to_numeric(df[revenue_col], errors="coerce").fillna(0).sum()
     else:
-        revenue_gbp = 0.0
+        if "Lineitem price" in df.columns:
+            revenue_gbp = (pd.to_numeric(df["Lineitem price"], errors="coerce").fillna(0) * df["qty"]).sum()
+        else:
+            revenue_gbp = 0.0
 
-# Convert to USD
-revenue_usd = revenue_gbp * GBP_TO_USD
+    revenue_usd = revenue_gbp * GBP_TO_USD
+    fees = ((revenue_usd * 0.028 + 0.3) * 1.1) + ((revenue_usd * 0.02) * 1.1)
 
-# Shopify fees (calculated on USD revenue)
-fees = ((revenue_usd * 0.028 + 0.3) * 1.1) + ((revenue_usd * 0.02) * 1.1)
-
-# Display metrics
-st.metric("Total COGS (USD)", f"${total:,.2f}")
-st.metric("Revenue (GBP)", f"£{revenue_gbp:,.2f}")
-st.metric("Revenue (USD)", f"${revenue_usd:,.2f}")
-st.metric("Shopify Fees (USD)", f"${fees:,.2f}")
+    st.metric("Revenue (GBP)", f"£{revenue_gbp:,.2f}")
+    st.metric("Revenue (USD)", f"${revenue_usd:,.2f}")
+    st.metric("Shopify Fees (USD)", f"${fees:,.2f}")
