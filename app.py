@@ -59,7 +59,6 @@ h1{font-size:2.4rem!important; letter-spacing:.3px; margin:.1rem 0 .8rem}
 .hr{height:1px; background:var(--border); margin:12px 0 6px; opacity:.6}
 
 /* ===== HERO INPUTS (lime, huge, glowing) ===== */
-.hero-row{display:grid; grid-template-columns: 1.7fr 1fr; gap:16px; margin:14px 0 18px;}
 .hero-pil{
   border-radius:18px; background:var(--panel); border:1px solid var(--border);
   box-shadow:0 10px 28px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.03), 0 0 20px rgba(164,219,50,.10);
@@ -72,28 +71,27 @@ h1{font-size:2.4rem!important; letter-spacing:.3px; margin:.1rem 0 .8rem}
 .hero-label{font-size:1rem; font-weight:800; color:var(--muted); margin:0 0 6px 2px;}
 .hero-pil .big{ font-size:1.1rem; }
 
-/* File uploader (lime accent) */
-.hero-pil [data-testid="stFileUploader"] > div{
+/* File uploader (lime accent, scoped to the dropzone) */
+.hero-pil [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"]{
   background:linear-gradient(180deg,#151c28,#0e1420);
   border:1px dashed var(--lime); border-radius:14px;
-  padding:18px; box-shadow: inset 0 0 0 1px rgba(164,219,50,.12);
+  padding:18px; box-shadow: inset 0 0 0 1px rgba(164,219,50,.12), 0 0 16px rgba(164,219,50,.10);
 }
 .hero-pil [data-testid="stFileUploader"] button{
   border:1px solid var(--lime); color:var(--text); background:transparent;
 }
 .hero-pil [data-testid="stFileUploader"] button:hover{ background: rgba(164,219,50,.08); }
 
-/* Number input (lime border + glow) */
-.hero-pil .stNumberInput > div > div{
+/* Number input (lime border + glow), scoped by testid */
+.hero-pil [data-testid="stNumberInput"] > div > div{
   background:linear-gradient(180deg,#151c28,#0e1420);
   border:1px solid var(--lime); border-radius:14px;
   box-shadow: inset 0 0 0 1px rgba(164,219,50,.12), 0 0 16px rgba(164,219,50,.10);
 }
-.hero-pil .stNumberInput input{
+.hero-pil [data-testid="stNumberInput"] input{
   color:var(--text); font-size:1.6rem; font-weight:900; padding:16px 14px;
 }
-.hero-pil .stNumberInput svg{ color:var(--text); }  /* + / – icons */
-
+.hero-pil [data-testid="stNumberInput"] svg{ color:var(--text); }  /* + / – icons */
 /* Align labels consistently */
 .hero-pil .stFileUploader, .hero-pil .stNumberInput{ margin-top:6px; }
 
@@ -201,26 +199,21 @@ def pill(number, label, sub=None, state="neutral"):
 st.title("Rhóms Profitability Dashboard")
 st.caption("Drop your Shopify CSV + Ad Spend. See blended & front-end profitability in one glance.")
 
-# ===== HERO INPUTS ROW =====
-st.markdown('<div class="hero-row">', unsafe_allow_html=True)
+# ===== HERO INPUTS ROW (CSV wider, Ad Spend narrower) =====
+col_left, col_right = st.columns([1.8, 1])
 
-# Left: CSV (wider)
-col_left, col_right = st.columns([1, 1])  # we only use these to mount widgets; sizing is CSS grid above
 with col_left:
     st.markdown('<div class="hero-pil">', unsafe_allow_html=True)
     st.markdown('<div class="hero-label">Shopify CSV</div>', unsafe_allow_html=True)
     file = st.file_uploader(" ", type=["csv"], label_visibility="collapsed")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Right: Ad Spend (narrower)
 with col_right:
     st.markdown('<div class="hero-pil">', unsafe_allow_html=True)
     st.markdown('<div class="hero-label">Ad Spend (USD)</div>', unsafe_allow_html=True)
     ad_spend_usd = st.number_input(" ", value=0.00, min_value=0.00, step=10.00,
                                    format="%.2f", label_visibility="collapsed")
     st.markdown('</div>', unsafe_allow_html=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
 
 # Details / settings expander (kept dark & minimal)
 with st.expander("Details & Settings"):
