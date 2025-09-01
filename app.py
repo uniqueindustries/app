@@ -134,6 +134,10 @@ if file:
     net_after_fees = max(revenue_usd - fees_usd, 0)  # just a display nicety
     gross_profit = max(revenue_usd - fees_usd - total_cogs_usd, 0)
 
+    overall_profit = max(gross_profit - ad_spend_usd, 0)  # clamp at 0 for display nicety
+    roas = (revenue_usd / ad_spend_usd) if ad_spend_usd > 0 else None
+
+
         # --- KPI pills layout ---
     st.markdown(f'<span class="fxchip">FX £→$ = {fx:.2f}</span>', unsafe_allow_html=True)
     st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
