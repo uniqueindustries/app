@@ -163,7 +163,7 @@ if file:
     st.markdown('</div>', unsafe_allow_html=True)
 
 
-    # Row 2
+    # Row 2: COGS / Net / Gross Profit (pre-ads)
     st.markdown('<div class="row">', unsafe_allow_html=True)
     st.markdown(f'''
     <div class="pill"><div class="label">Total COGS (USD)</div>
@@ -177,6 +177,30 @@ if file:
     <div class="value">${gross_profit:,.2f}</div>
     <div class="small">Revenue USD – Fees – COGS</div></div>''', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Row 3: Ad spend + Overall Profit
+    st.markdown('<div class="row">', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="pill"><div class="label">Ad Spend (USD)</div>
+    <div class="value">${ad_spend_usd:,.2f}</div></div>''', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="pill"><div class="label">Overall Profit (USD)</div>
+    <div class="value">${overall_profit:,.2f}</div>
+    <div class="small">Gross Profit – Ad Spend</div></div>''', unsafe_allow_html=True)
+    
+    # ROAS (only if ad spend > 0)
+    if roas is not None:
+        st.markdown(f'''
+        <div class="pill"><div class="label">ROAS</div>
+        <div class="value">{roas:,.2f}×</div>
+        <div class="small">Revenue ÷ Ad Spend</div></div>''', unsafe_allow_html=True)
+    else:
+        st.markdown(f'''
+        <div class="pill"><div class="label">ROAS</div>
+        <div class="value">–</div>
+        <div class="small">Set Ad Spend to see ROAS</div></div>''', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
 
     # Debug log
     if show_debug and logs:
