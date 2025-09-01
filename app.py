@@ -203,17 +203,13 @@ st.caption("Drop your Shopify CSV + Ad Spend. See blended & front-end profitabil
 col_left, col_right = st.columns([1.8, 1])
 
 with col_left:
-    st.markdown('<div class="hero-pil">', unsafe_allow_html=True)
     st.markdown('<div class="hero-label">Shopify CSV</div>', unsafe_allow_html=True)
     file = st.file_uploader(" ", type=["csv"], label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
 
 with col_right:
-    st.markdown('<div class="hero-pil">', unsafe_allow_html=True)
     st.markdown('<div class="hero-label">Ad Spend (USD)</div>', unsafe_allow_html=True)
     ad_spend_usd = st.number_input(" ", value=0.00, min_value=0.00, step=10.00,
                                    format="%.2f", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # Details / settings expander (kept dark & minimal)
 with st.expander("Details & Settings"):
