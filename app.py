@@ -381,7 +381,25 @@ if file:
     # UI: preview + copy button
     st.markdown("#### Quick paste to your COGs Sheet")
     st.caption("Click copy, then ⌘V / Ctrl+V into your Google Sheet (TSV format).")
-    st.code("\t".join(headers) + "\n" + tsv_line, language="")
+    # Pretty preview table in the app (doesn't affect clipboard TSV)
+    preview_df = pd.DataFrame([{
+        "Date (or range)": export_row["Date (or range)"],
+        "Total Revenue (USD)": f'${export_row["Total Revenue (USD)"]:.2f}',
+        "Ad Spend (USD)":     f'${export_row["Ad Spend (USD)"]:.2f}',
+        "Total COGs (USD)":   f'${export_row["Total COGs (USD)"]:.2f}',
+        "Total Profit (USD)": f'${export_row["Total Profit (USD)"]:.2f}',
+        "NC Profit (USD)":    f'${export_row["NC Profit (USD)"]:.2f}',
+    }])[[
+        "Date (or range)",
+        "Total Revenue (USD)",
+        "Ad Spend (USD)",
+        "Total COGs (USD)",
+        "Total Profit (USD)",
+        "NC Profit (USD)",
+    ]]
+    
+    st.dataframe(preview_df, use_container_width=True, hide_index=True)
+
 
     # Copy to clipboard via a tiny HTML component
     import json as _json
