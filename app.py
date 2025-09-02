@@ -348,6 +348,78 @@ if file:
     ]
     st.markdown('<div class="row-2">' + "".join(r3) + '</div>', unsafe_allow_html=True)
 
+        # UI: preview + copy button
+    st.markdown("#### Quick paste to your COGs Sheet")
+    st.caption("Click copy, then ⌘V / Ctrl+V into your Google Sheet (TSV format).")
+    st.code("\\t".join(headers) + "\\n" + tsv_line, language="")
+
+    # Copy to clipboard via a tiny HTML component
+    import html as _html
+    from streamlit.components.v1 import html as _st_html
+    _escaped = _html.escape(tsv_line)
+
+    _st_html(f"""
+      <button id="copyBtn" style="
+        padding:10px 14px;border:1px solid #A4DB32;border-radius:10px;
+        background:transparent;color:#e5e7eb;cursor:pointer;font-weight:700">
+        📋 Copy row for Sheets
+      </button>
+      <script>
+        const btn = document.getElementById('copyBtn');
+        btn.addEventListener('click', async () => {{
+          try {{
+            await navigator.clipboard.writeText('{_escaped}');
+            const old = btn.innerText;
+            btn.innerText = 'Copied!';
+            setTimeout(()=>btn.innerText = old, 1200);
+          }} catch (e) {{
+            alert('Copy failed: ' + e);
+          }}
+        }});
+      </script>
+    """, height=70)
+
+    # Optional: also offer a TSV download file
+    from io import StringIO as _StringIO
+    _buf = _StringIO()
+    _buf.write("\\t".join(headers) + "\\n" + tsv_line)
+    st.download_button(
+        "⬇️ Download TSV",
+        data=_buf.getvalue().encode("utf-8"),
+        file_name="rhomes_summary.tsv",
+        mime="text/tab-separated-values",
+    )
+
+
+    # Build one summary row in the exact order you want for Sheets
+    export_row = {
+        "Date (or range)": date_chip_text,
+        "Total Revenue (USD)": round(net_after_fees, 2),   # net after Shopify fees
+        "Ad Spend (USD)": round(ad_spend_usd, 2),
+        "Total COGs (USD)": round(total_cogs_usd, 2),
+        "Total Profit (USD)": round(overall_profit, 2),
+        "NC Profit (USD)": round(fe_overall_profit, 2),
+    }
+
+    # Prepare TSV for copy/paste (TSV pastes into separate columns in Sheets)
+    headers = [
+        "Date (or range)",
+        "Total Revenue (USD)",
+        "Ad Spend (USD)",
+        "Total COGs (USD)",
+        "Total Profit (USD)",
+        "NC Profit (USD)",
+    ]
+    values = [
+        export_row["Date (or range)"],
+        f'{export_row["Total Revenue (USD)"]:.2f}',
+        f'{export_row["Ad Spend (USD)"]:.2f}',
+        f'{export_row["Total COGs (USD)"]:.2f}',
+        f'{export_row["Total Profit (USD)"]:.2f}',
+        f'{export_row["NC Profit (USD)"]:.2f}',
+    ]
+    tsv_line = "\\t".join(values)
+
     # -------- Details Expander (optional) --------
     with st.expander("More details (open if needed)"):
         st.write(f"**Revenue (GBP):** £{revenue_gbp:,.2f}")
