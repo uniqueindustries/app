@@ -129,17 +129,19 @@ MAIN_COST_TABLE = {
     "United States": {1: 8.00, 2: 10.50, 3: 13.00, 4: 15.50, 5: 18.00, 6: 20.50},
     "United Kingdom": {1: 5.50, 2: 8.00, 3: 10.00, 4: 12.00, 5: 14.00, 6: 16.00},
     "Canada": {1: 6.50, 2: 9.00, 3: 11.50, 4: 14.50, 5: 17.00, 6: 21.00},
+    "Netherlands": {1: 6.00, 2: 9.00, 3: 11.50, 4: 14.00, 5: 16.50, 6: 20.00},
 }
 EXTRA_COSTS = {
-    "irritation proof razor": {"United States": 5.50, "United Kingdom": 4.50, "Canada": 5.50},
-    "razor close trimmer": {"United Kingdom": 10.50},
-    "shaving foam": {"United States": 6.00, "United Kingdom": 5.00, "Canada": 6.00},
+    "irritation proof razor": {"United States": 5.50, "United Kingdom": 4.50, "Canada": 5.50, "Netherlands": 5.00},
+    "razor close trimmer": {"United Kingdom": 10.50, "Netherlands": 11.00},
+    "shaving foam": {"United States": 6.00, "United Kingdom": 5.00, "Canada": 6.00, "Netherlands": 5.50},
 }
 ZERO_COGS_KEYS = ["express shipping","dermatologist guide","shipping protection"]
 COUNTRY_MAP = {
     "GB":"United Kingdom","UK":"United Kingdom","United Kingdom":"United Kingdom",
     "CA":"Canada","CAN":"Canada","Canada":"Canada",
     "US":"United States","USA":"United States","United States":"United States",
+    "NL":"Netherlands","NLD":"Netherlands","Netherlands":"Netherlands",
 }
 COUNTRY_COLS = ["Shipping Country","Shipping Country Code","Shipping Address Country Code","Shipping Address Country"]
 RECURRING_TAG = "Subscription Recurring Order"  # tag to exclude from front-end
