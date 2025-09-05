@@ -473,6 +473,138 @@ if file:
     ]
     tsv_line = "\\t".join(values)
 
+    # ========================= COGS BREAKDOWN (reconcile with Shopify) =========================
+    def _per_order_cogs_breakdown(df_all: pd.DataFrame, date_series: pd.Series):
+        # Find a usable country column (same strategy as calc_cogs)
+        country_col = None
+        for c in COUNTRY_COLS:
+            if c in df_all.columns:
+                country_col = c
+                break
+    
+        rows = []
+        for oid, grp in df_all.groupby("Name"):
+            # Date (first non-null from detected date column)
+            dt = ""
+            if not date_series.empty:
+                try:
+                    dtv = pd.to_datetime(date_series.loc[grp.index].dropna().iloc[0])
+                    dt = dtv.strftime("%Y-%m-%d")
+                except Exception:
+                    dt = ""
+    
+            # Country normalization (fall back to raw if no mapping)
+            raw_country = str(grp[country_col].iloc[0]).strip() if country_col else ""
+            country = COUNTRY_MAP.get(raw_country, raw_country)
+    
+            # Tally main/extras exactly like calc_cogs
+            main_qty = 0
+            extras_cost = 0.0
+            unmapped = []
+    
+            for _, r in grp.iterrows():
+                q = int(pd.to_numeric(r.get("Lineitem quantity", 0), errors="coerce") or 0)
+                n = norm(r.get("Lineitem name", ""))
+    
+                if q == 0 or zero_cogs(n):
+                    continue
+    
+                if is_main(n):
+                    main_qty += q
+                    continue
+    
+                ek = extra_key(n)
+                if ek:
+                    extras_cost += EXTRA_COSTS.get(ek, {}).get(country, 0.0) * q
+                else:
+                    # keep raw name to help you reconcile in Shopify
+                    unmapped.append(str(r.get("Lineitem name", "")))
+    
+            # Main cost from tier table
+            main_cost = 0.0
+            if main_qty:
+                main_cost = MAIN_COST_TABLE.get(country, {}).get(main_qty, 0.0)
+    
+            total_cogs = round(main_cost + extras_cost, 2)
+    
+            # Mark "computed" if we had enough info to price *either* main or extras
+            computed = (main_qty > 0) or (extras_cost > 0)
+    
+            rows.append({
+                "Order ID": oid,
+                "Date": dt,
+                "Country": country if country else raw_country,
+                "Main Units": int(main_qty),
+                "Main Cost (USD)": round(main_cost, 2),
+                "Extras Cost (USD)": round(extras_cost, 2),
+                "Total COGS (USD)": total_cogs,
+                "Computed?": computed,
+                "Unmapped Lines": ", ".join(unmapped) if unmapped else "",
+            })
+    
+        return pd.DataFrame(rows)
+    
+    breakdown_df = _per_order_cogs_breakdown(df, ds)
+    
+    # Topline counters so you can spot omissions quickly
+    total_orders = int(breakdown_df.shape[0])
+    computed_orders = int(breakdown_df["Computed?"].sum())
+    left_out_orders = breakdown_df.loc[~breakdown_df["Computed?"], "Order ID"].tolist()
+    
+    st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
+    st.markdown("### Reconciliation")
+    
+    # A tiny 2-pill row to visualize counts
+    r_recon = [
+        pill(f"{total_orders}", "Total Orders (in CSV)"),
+        pill(f"{computed_orders}", "Orders with COGS Computed",
+             sub=f"{computed_orders}/{total_orders}"),
+    ]
+    st.markdown('<div class="row-2">' + "".join(r_recon) + '</div>', unsafe_allow_html=True)
+    
+    # If anything was left out, surface it
+    if left_out_orders:
+        with st.expander("⚠️ Orders with no computed COGS (click to review)"):
+            st.write(
+                "These orders had **no main units and no priced extras** (or used unmapped SKUs/countries). "
+                "Cross-check in Shopify and/or update `MAIN_COST_TABLE`, `EXTRA_COSTS`, `COUNTRY_MAP`, or `ZERO_COGS_KEYS`."
+            )
+            st.dataframe(
+                breakdown_df.loc[~breakdown_df["Computed?"], [
+                    "Order ID", "Date", "Country", "Main Units",
+                    "Main Cost (USD)", "Extras Cost (USD)", "Total COGS (USD)", "Unmapped Lines"
+                ]].sort_values("Date"),
+                use_container_width=True, hide_index=True
+            )
+    
+    # Country counts table
+    country_counts = (
+        breakdown_df.groupby("Country", dropna=False)["Order ID"]
+        .nunique()
+        .sort_values(ascending=False)
+        .reset_index()
+        .rename(columns={"Order ID": "Orders"})
+    )
+    st.markdown("#### Orders per Country")
+    st.dataframe(country_counts, use_container_width=True, hide_index=True)
+    
+    # Per-country quick toggles with a compact order summary
+    for _, row in country_counts.iterrows():
+        ctry = str(row["Country"])
+        cnt = int(row["Orders"])
+        subset = breakdown_df[breakdown_df["Country"] == ctry].copy()
+    
+        with st.expander(f"{ctry} — {cnt} orders"):
+            quick_cols = [
+                "Order ID", "Date", "Main Units",
+                "Main Cost (USD)", "Extras Cost (USD)", "Total COGS (USD)", "Unmapped Lines"
+            ]
+            st.dataframe(
+                subset[quick_cols].sort_values("Date"),
+                use_container_width=True, hide_index=True
+            )
+
+
     # -------- Details Expander (optional) --------
     with st.expander("More details (open if needed)"):
         st.write(f"**Revenue (GBP):** £{revenue_gbp:,.2f}")
