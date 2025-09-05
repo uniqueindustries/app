@@ -529,7 +529,11 @@ if file:
 
     # ========================= COGS BREAKDOWN (reconcile with Shopify) =========================
     def _per_order_cogs_breakdown(df_all: pd.DataFrame, date_series: pd.Series):
-        # Discover a usable country column (same strategy as calc_cogs)
+        """
+        Builds a per-order COGS table used by the Reconciliation section.
+        Uses main_cost_with_extrapolation() so 7+ units never price to $0 and emits warnings.
+        """
+        # Find a usable country column (same strategy as calc_cogs)
         country_col = None
         for c in COUNTRY_COLS:
             if c in df_all.columns:
@@ -538,7 +542,7 @@ if file:
     
         rows = []
         for oid, grp in df_all.groupby("Name"):
-            # Date
+            # Date (first non-null in detected date column)
             dt = ""
             if not date_series.empty:
                 try:
@@ -547,14 +551,15 @@ if file:
                 except Exception:
                     dt = ""
     
+            # Country normalization (Shopify gives codes like GB/NL/AU/NZ; COUNTRY_MAP maps to display name)
             raw_country = str(grp[country_col].iloc[0]).strip() if country_col else ""
             norm_country = COUNTRY_MAP.get(raw_country, raw_country)
+            country_known = norm_country in MAIN_COST_TABLE
     
-            # Tally like calc_cogs
+            # Tally main units and extras cost exactly like calc_cogs
             main_qty = 0
             extras_cost = 0.0
             unmapped = []
-            unknown_extra_countries = False  # extras item had no price for this country
     
             for _, r in grp.iterrows():
                 q = int(pd.to_numeric(r.get("Lineitem quantity", 0), errors="coerce") or 0)
@@ -573,37 +578,30 @@ if file:
                     if norm_country in price_map:
                         extras_cost += price_map[norm_country] * q
                     else:
-                        unknown_extra_countries = True
+                        # extra exists but not priced for this country
                         unmapped.append(str(r.get("Lineitem name", "")))
                 else:
+                    # unknown extra
                     unmapped.append(str(r.get("Lineitem name", "")))
     
-            # Main cost lookup with diagnostics
-            country_known = norm_country in MAIN_COST_TABLE
+            # Main cost with extrapolation (handles >6 units)
             main_cost, warn = main_cost_with_extrapolation(norm_country, main_qty)
-
     
-            total_cogs = round(main_cost + extras_cost, 2)
+            total_cogs = round((main_cost or 0.0) + (extras_cost or 0.0), 2)
     
-            # Status + Computed logic:
-            # Only "Computed" if there is any priced component (main_cost>0 or extras_cost>0)
+            # Status + Computed logic (no tier_found var anymore)
             if not country_known:
                 status = "Unknown country"
-                computed = (extras_cost > 0)  # might still have priced extras if somehow mapped
-            elif main_qty and not tier_found:
-                status = "Missing main tier"
-                computed = (extras_cost > 0)
+                computed = (main_cost > 0) or (extras_cost > 0)
+            elif warn:  # helper signalled extrapolation or missing tiers
+                status = warn
+                computed = (main_cost > 0) or (extras_cost > 0)
             elif (main_cost > 0) or (extras_cost > 0):
                 status = "OK"
                 computed = True
             else:
-                # No priced lines; could be zero-COGS items only or unmapped extras
                 status = "Only zero-COGS/unmapped"
                 computed = False
-    
-            # Add a soft warning if extras weren’t priced for this country
-            if unknown_extra_countries and status == "OK":
-                status = "OK (extras missing price)"
     
             rows.append({
                 "Order ID": oid,
@@ -611,17 +609,17 @@ if file:
                 "Raw Country": raw_country,
                 "Country": norm_country,
                 "Main Units": int(main_qty),
-                "Main Cost (USD)": round(main_cost, 2),
-                "Extras Cost (USD)": round(extras_cost, 2),
+                "Main Cost (USD)": round(main_cost or 0.0, 2),
+                "Extras Cost (USD)": round(extras_cost or 0.0, 2),
                 "Total COGS (USD)": total_cogs,
                 "Computed?": computed,
                 "Status": status,
                 "Unmapped Lines": ", ".join(unmapped) if unmapped else "",
                 "Warnings": warn or "",
-
             })
     
         return pd.DataFrame(rows)
+
     
     breakdown_df = _per_order_cogs_breakdown(df, ds)
     
