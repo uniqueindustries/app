@@ -176,6 +176,28 @@ COUNTRY_COLS = ["Shipping Country","Shipping Country Code","Shipping Address Cou
 RECURRING_TAG = "Subscription Recurring Order"  # tag to exclude from front-end
 
 # ------------------------- HELPERS -------------------------
+def main_cost_with_extrapolation(country: str, main_qty: int):
+    """
+    Returns (cost, warning). If main_qty is above the highest tier, extrapolate using
+    the last step. Example: cost[n] = cost[max] + (n-max)*step.
+    """
+    if not main_qty:
+        return 0.0, None
+
+    tiers = MAIN_COST_TABLE.get(country, {})
+    if not tiers:
+        return 0.0, f"Unknown country '{country}' for main tiers."
+
+    if main_qty in tiers:
+        return float(tiers[main_qty]), None
+
+    max_tier = max(tiers.keys())
+    if main_qty > max_tier:
+        step = (tiers[max_tier] - tiers[max_tier-1]) if (max_tier-1) in tiers else 0
+        est = tiers[max_tier] + step * (main_qty - max_tier)
+        return float(round(est, 2)), f"Extrapolated main COGS for {main_qty} units"
+    return 0.0, f"Missing main tier for {main_qty} units."
+
 def norm(s):
     s = str(s)
     s = unicodedata.normalize("NFKD", s).encode("ascii","ignore").decode("ascii").lower()
@@ -220,7 +242,10 @@ def calc_cogs(df: pd.DataFrame, debug=False):
                 extras_cost += EXTRA_COSTS[ek].get(country,0) * q
             else:
                 logs.append(f"{oid}: Unmapped {r['Lineitem name']}")
-        main_cost = MAIN_COST_TABLE.get(country,{}).get(main_qty,0) if main_qty else 0
+        main_cost, warn = main_cost_with_extrapolation(country, main_qty)
+        if debug and warn:
+            logs.append(f"{oid}: {warn}")
+
         total += main_cost + extras_cost
         if debug:
             logs.append(f"{oid} · {country} · main {main_qty}u = ${main_cost:.2f} · extras ${extras_cost:.2f}")
@@ -555,9 +580,8 @@ if file:
     
             # Main cost lookup with diagnostics
             country_known = norm_country in MAIN_COST_TABLE
-            tier_map = MAIN_COST_TABLE.get(norm_country, {})
-            tier_found = main_qty in tier_map if main_qty else True  # true if no main units needed
-            main_cost = tier_map.get(main_qty, 0.0) if main_qty else 0.0
+            main_cost, warn = main_cost_with_extrapolation(norm_country, main_qty)
+
     
             total_cogs = round(main_cost + extras_cost, 2)
     
@@ -593,6 +617,8 @@ if file:
                 "Computed?": computed,
                 "Status": status,
                 "Unmapped Lines": ", ".join(unmapped) if unmapped else "",
+                "Warnings": warn or "",
+
             })
     
         return pd.DataFrame(rows)
@@ -634,6 +660,19 @@ if file:
     )
     st.markdown("#### Orders per Country")
     st.dataframe(country_counts, use_container_width=True, hide_index=True)
+
+    warning_rows = breakdown_df[breakdown_df["Warnings"] != ""]
+    if not warning_rows.empty:
+        with st.expander("⚠️ Orders with warnings (extrapolated or unusual)"):
+            st.dataframe(
+                warning_rows[[
+                    "Order ID","Date","Country","Main Units",
+                    "Main Cost (USD)","Extras Cost (USD)","Total COGS (USD)",
+                    "Status","Warnings"
+                ]].sort_values(["Country","Date","Order ID"]),
+                use_container_width=True, hide_index=True
+            )
+
     
     # Per-country toggles
     for _, row in country_counts.iterrows():
