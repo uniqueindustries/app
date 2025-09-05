@@ -475,7 +475,7 @@ if file:
 
     # ========================= COGS BREAKDOWN (reconcile with Shopify) =========================
     def _per_order_cogs_breakdown(df_all: pd.DataFrame, date_series: pd.Series):
-        # Find a usable country column (same strategy as calc_cogs)
+        # Discover a usable country column (same strategy as calc_cogs)
         country_col = None
         for c in COUNTRY_COLS:
             if c in df_all.columns:
@@ -484,7 +484,7 @@ if file:
     
         rows = []
         for oid, grp in df_all.groupby("Name"):
-            # Date (first non-null from detected date column)
+            # Date
             dt = ""
             if not date_series.empty:
                 try:
@@ -493,14 +493,14 @@ if file:
                 except Exception:
                     dt = ""
     
-            # Country normalization (fall back to raw if no mapping)
             raw_country = str(grp[country_col].iloc[0]).strip() if country_col else ""
-            country = COUNTRY_MAP.get(raw_country, raw_country)
+            norm_country = COUNTRY_MAP.get(raw_country, raw_country)
     
-            # Tally main/extras exactly like calc_cogs
+            # Tally like calc_cogs
             main_qty = 0
             extras_cost = 0.0
             unmapped = []
+            unknown_extra_countries = False  # extras item had no price for this country
     
             for _, r in grp.iterrows():
                 q = int(pd.to_numeric(r.get("Lineitem quantity", 0), errors="coerce") or 0)
@@ -515,30 +515,54 @@ if file:
     
                 ek = extra_key(n)
                 if ek:
-                    extras_cost += EXTRA_COSTS.get(ek, {}).get(country, 0.0) * q
+                    price_map = EXTRA_COSTS.get(ek, {})
+                    if norm_country in price_map:
+                        extras_cost += price_map[norm_country] * q
+                    else:
+                        unknown_extra_countries = True
+                        unmapped.append(str(r.get("Lineitem name", "")))
                 else:
-                    # keep raw name to help you reconcile in Shopify
                     unmapped.append(str(r.get("Lineitem name", "")))
     
-            # Main cost from tier table
-            main_cost = 0.0
-            if main_qty:
-                main_cost = MAIN_COST_TABLE.get(country, {}).get(main_qty, 0.0)
+            # Main cost lookup with diagnostics
+            country_known = norm_country in MAIN_COST_TABLE
+            tier_map = MAIN_COST_TABLE.get(norm_country, {})
+            tier_found = main_qty in tier_map if main_qty else True  # true if no main units needed
+            main_cost = tier_map.get(main_qty, 0.0) if main_qty else 0.0
     
             total_cogs = round(main_cost + extras_cost, 2)
     
-            # Mark "computed" if we had enough info to price *either* main or extras
-            computed = (main_qty > 0) or (extras_cost > 0)
+            # Status + Computed logic:
+            # Only "Computed" if there is any priced component (main_cost>0 or extras_cost>0)
+            if not country_known:
+                status = "Unknown country"
+                computed = (extras_cost > 0)  # might still have priced extras if somehow mapped
+            elif main_qty and not tier_found:
+                status = "Missing main tier"
+                computed = (extras_cost > 0)
+            elif (main_cost > 0) or (extras_cost > 0):
+                status = "OK"
+                computed = True
+            else:
+                # No priced lines; could be zero-COGS items only or unmapped extras
+                status = "Only zero-COGS/unmapped"
+                computed = False
+    
+            # Add a soft warning if extras weren’t priced for this country
+            if unknown_extra_countries and status == "OK":
+                status = "OK (extras missing price)"
     
             rows.append({
                 "Order ID": oid,
                 "Date": dt,
-                "Country": country if country else raw_country,
+                "Raw Country": raw_country,
+                "Country": norm_country,
                 "Main Units": int(main_qty),
                 "Main Cost (USD)": round(main_cost, 2),
                 "Extras Cost (USD)": round(extras_cost, 2),
                 "Total COGS (USD)": total_cogs,
                 "Computed?": computed,
+                "Status": status,
                 "Unmapped Lines": ", ".join(unmapped) if unmapped else "",
             })
     
@@ -554,41 +578,35 @@ if file:
     st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
     st.markdown("### Reconciliation")
     
-    # A tiny 2-pill row to visualize counts
     r_recon = [
         pill(f"{total_orders}", "Total Orders (in CSV)"),
-        pill(f"{computed_orders}", "Orders with COGS Computed",
-             sub=f"{computed_orders}/{total_orders}"),
+        pill(f"{computed_orders}", "Orders with Priced COGS", sub=f"{computed_orders}/{total_orders}"),
     ]
     st.markdown('<div class="row-2">' + "".join(r_recon) + '</div>', unsafe_allow_html=True)
     
-    # If anything was left out, surface it
+    # Show any orders we couldn't price
     if left_out_orders:
-        with st.expander("⚠️ Orders with no computed COGS (click to review)"):
-            st.write(
-                "These orders had **no main units and no priced extras** (or used unmapped SKUs/countries). "
-                "Cross-check in Shopify and/or update `MAIN_COST_TABLE`, `EXTRA_COSTS`, `COUNTRY_MAP`, or `ZERO_COGS_KEYS`."
-            )
+        with st.expander("⚠️ Orders without priced COGS (click to review)"):
             st.dataframe(
                 breakdown_df.loc[~breakdown_df["Computed?"], [
-                    "Order ID", "Date", "Country", "Main Units",
-                    "Main Cost (USD)", "Extras Cost (USD)", "Total COGS (USD)", "Unmapped Lines"
-                ]].sort_values("Date"),
+                    "Order ID","Date","Raw Country","Country","Main Units",
+                    "Main Cost (USD)","Extras Cost (USD)","Total COGS (USD)","Status","Unmapped Lines"
+                ]].sort_values(["Country","Date","Order ID"]),
                 use_container_width=True, hide_index=True
             )
     
-    # Country counts table
+    # Country counts
     country_counts = (
         breakdown_df.groupby("Country", dropna=False)["Order ID"]
         .nunique()
         .sort_values(ascending=False)
         .reset_index()
-        .rename(columns={"Order ID": "Orders"})
+        .rename(columns={"Order ID":"Orders"})
     )
     st.markdown("#### Orders per Country")
     st.dataframe(country_counts, use_container_width=True, hide_index=True)
     
-    # Per-country quick toggles with a compact order summary
+    # Per-country toggles
     for _, row in country_counts.iterrows():
         ctry = str(row["Country"])
         cnt = int(row["Orders"])
@@ -596,13 +614,15 @@ if file:
     
         with st.expander(f"{ctry} — {cnt} orders"):
             quick_cols = [
-                "Order ID", "Date", "Main Units",
-                "Main Cost (USD)", "Extras Cost (USD)", "Total COGS (USD)", "Unmapped Lines"
+                "Order ID","Date","Main Units",
+                "Main Cost (USD)","Extras Cost (USD)","Total COGS (USD)",
+                "Status","Unmapped Lines"
             ]
             st.dataframe(
-                subset[quick_cols].sort_values("Date"),
+                subset[quick_cols].sort_values(["Date","Order ID"]),
                 use_container_width=True, hide_index=True
             )
+
 
 
     # -------- Details Expander (optional) --------
