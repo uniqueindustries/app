@@ -204,7 +204,15 @@ def norm(s):
     s = re.sub(r"[\W_]+"," ", s)
     return " ".join(s.split())
 
-def is_main(n): return "smoothing solution" in n or "smoothing serum" in n
+MAIN_NAME_ALIASES = [
+    "smoothing solution",
+    "smoothing serum",
+    "advanced triple acid roller for razor bumps",  # new alias (normalized)
+]
+
+def is_main(n: str) -> bool:
+    # 'n' is already normalized via norm(); match any known alias
+    return any(alias in n for alias in MAIN_NAME_ALIASES)
 def zero_cogs(n): return any(k in n for k in ZERO_COGS_KEYS)
 def extra_key(n):
     for key in EXTRA_COSTS:
