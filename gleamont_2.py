@@ -3,7 +3,7 @@ import pandas as pd
 import re, unicodedata
 
 # ------------------------- PAGE / META -------------------------
-st.set_page_config(page_title="Gleamont Profitability Dashboard"
+st.set_page_config(page_title="Gleamont Profitability Dashboard",
     page_icon="🧮",
     layout="centered",
 )
