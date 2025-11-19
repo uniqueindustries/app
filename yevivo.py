@@ -195,13 +195,17 @@ def norm(s: str) -> str:
     s = re.sub(r"[\W_]+", " ", s)
     return " ".join(s.split())
 
-
 def is_main(n: str) -> bool:
     """
-    Treat anything that looks like the core Yevivo drops as the main product.
-    Works even if Shopify adds/removes ™ etc.
+    Treat any Yevivo bottle line as the main product.
+
+    This is intentionally loose so it works for:
+    - single bottles
+    - 2/3/4 packs
+    - any bundle where the name still contains 'Yevivo'
     """
-    return ("yevivo" in n) and ("methylfolate" in n)
+    return "yevivo" in n
+
 
 
 
