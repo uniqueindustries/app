@@ -249,16 +249,21 @@ def calc_cogs(df: pd.DataFrame, debug=False):
     total = 0.0
 
     for oid, grp in df.groupby("Name"):
-        country = str(grp["Country"].iloc[0]).strip()
+        # Pick the first non-null shipping country in this order
+        if country_col:
+            raw_country_series = grp[country_col].dropna().astype(str).str.strip()
+            raw_country = raw_country_series.iloc[0] if not raw_country_series.empty else ""
+        else:
+            raw_country = ""
+    
+        country = COUNTRY_MAP.get(raw_country, raw_country)
+    
         main_qty = 0
         extras_cost = 0.0
+    
+        # IMPORTANT: use ALL line rows for qty — don’t filter by shipping country
+        items = grp.copy()
 
-        # Use only the rows that actually have a shipping country
-        # (Shopify export is creating a duplicate row with Shipping Country = NaN)
-        if country_col and grp[country_col].notna().any():
-            items = grp[grp[country_col].notna()].copy()
-        else:
-            items = grp.copy()
 
         for _, r in items.iterrows():
             n = norm(r.get("Lineitem name", ""))
@@ -603,10 +608,19 @@ if file:
             country_known = norm_country in MAIN_COST_TABLE
 
             # ignore ghost rows — keep only records with a shipping country
-            if country_col and grp[country_col].notna().any():
-                items = grp[grp[country_col].notna()].copy()
+            # country lookup
+            if country_col:
+                raw_country_series = grp[country_col].dropna().astype(str).str.strip()
+                raw_country = raw_country_series.iloc[0] if not raw_country_series.empty else ""
             else:
-                items = grp.copy()
+                raw_country = ""
+            
+            norm_country = COUNTRY_MAP.get(raw_country, raw_country)
+            country_known = norm_country in MAIN_COST_TABLE
+            
+            # use all rows for unit counts
+            items = grp.copy()
+
 
             main_qty = 0
             extras_cost = 0.0
