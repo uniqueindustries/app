@@ -163,7 +163,7 @@ RECURRING_TAG = "Subscription Recurring Order"  # tag to exclude from NC view
 
 # Yevivo main product aliases (normalized)
 MAIN_NAME_ALIASES = [
-    "yevivo l methylfolate daily drops",  # matches norm("Yevivo™ L-Methylfolate Daily Drops")
+    "Yevivo™ L-Methylfolate Daily Drops",  # matches norm("Yevivo™ L-Methylfolate Daily Drops")
 ]
 
 # ------------------------- HELPERS -------------------------
