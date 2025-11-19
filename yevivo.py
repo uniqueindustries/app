@@ -161,10 +161,6 @@ COUNTRY_COLS = [
 
 RECURRING_TAG = "Subscription Recurring Order"  # tag to exclude from NC view
 
-# Yevivo main product aliases (normalized)
-MAIN_NAME_ALIASES = [
-    "yevivo l methylfolate daily drops",  # matches norm("Yevivo™ L-Methylfolate Daily Drops")
-]
 
 # ------------------------- HELPERS -------------------------
 def main_cost_with_extrapolation(country: str, main_qty: int):
@@ -201,7 +197,12 @@ def norm(s: str) -> str:
 
 
 def is_main(n: str) -> bool:
-    return any(alias in n for alias in MAIN_NAME_ALIASES)
+    """
+    Treat anything that looks like the core Yevivo drops as the main product.
+    Works even if Shopify adds/removes ™ etc.
+    """
+    return ("yevivo" in n) and ("methylfolate" in n)
+
 
 
 def zero_cogs(n: str) -> bool:
@@ -248,9 +249,10 @@ def calc_cogs(df: pd.DataFrame, debug=False):
         main_qty = 0
         extras_cost = 0.0
 
-        # IMPORTANT: ignore duplicate "ghost" rows where Lineitem price is NaN
-        if "Lineitem price" in grp.columns:
-            items = grp[grp["Lineitem price"].notna()].copy()
+        # Use only the rows that actually have a shipping country
+        # (Shopify export is creating a duplicate row with Shipping Country = NaN)
+        if country_col and grp[country_col].notna().any():
+            items = grp[grp[country_col].notna()].copy()
         else:
             items = grp.copy()
 
@@ -596,9 +598,9 @@ if file:
             norm_country = COUNTRY_MAP.get(raw_country, raw_country)
             country_known = norm_country in MAIN_COST_TABLE
 
-            # ignore ghost rows
-            if "Lineitem price" in grp.columns:
-                items = grp[grp["Lineitem price"].notna()].copy()
+            # ignore ghost rows — keep only records with a shipping country
+            if country_col and grp[country_col].notna().any():
+                items = grp[grp[country_col].notna()].copy()
             else:
                 items = grp.copy()
 
