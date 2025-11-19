@@ -598,11 +598,7 @@ if file:
             norm_country = COUNTRY_MAP.get(raw_country, raw_country)
             country_known = norm_country in MAIN_COST_TABLE
 
-            # ignore ghost rows — keep only records with a shipping country
-            if country_col and grp[country_col].notna().any():
-                items = grp[grp[country_col].notna()].copy()
-            else:
-                items = grp.copy()
+           
 
             main_qty = 0
             extras_cost = 0.0
