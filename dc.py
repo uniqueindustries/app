@@ -205,7 +205,7 @@ def norm(s):
     return " ".join(s.split())
 
 MAIN_NAME_ALIASES = [
-    "Yevivo™ Premium Liquid Collagen",  # new alias (normalized)
+    "Yevivo\u2122 Premium Liquid Collagen",  # new alias (normalized)
 ]
 
 def is_main(n: str) -> bool:
