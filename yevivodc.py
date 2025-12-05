@@ -4,7 +4,7 @@ import re, unicodedata
 
 # ------------------------- PAGE / META -------------------------
 st.set_page_config(
-    page_title="Yevivo Profitability Dashboard",
+    page_title="Yevivo Profitability Dashboard (Canada)",
     page_icon="🧮",
     layout="centered",
 )
@@ -116,40 +116,37 @@ h1{font-size:2.4rem!important; letter-spacing:.3px; margin:.1rem 0 .8rem}
 """, unsafe_allow_html=True)
 
 # ------------------------- CONFIG / MAPPINGS -------------------------
-# YEVIVO MAIN PRODUCT COGS (USD) – from your screenshots:
-# Australia: 1pc=8, 2pc=10.3, 3pc=12.9, 4pc=15.3
-# UK:        1pc=6.2, 2pc=8.8, 3pc=11.3, 4pc=13.8
-# 5+ units are extrapolated using the step between tiers 3 and 4.
+# MAIN PRODUCT COGS (USD) – Canada only
+# Supplier table:
+#  1 pc  ->  7.60
+#  3 pcs -> 13.80
+#  5 pcs -> 20.00
+#
+# We'll fill 2 & 4 pcs linearly so extrapolation works cleanly:
+#  2 pcs -> 10.70
+#  4 pcs -> 16.90
 
 MAIN_COST_TABLE = {
-    "Australia": {
-        1: 8.0,
-        2: 10.3,
-        3: 12.9,
-        4: 15.3,
-    },
-    "United Kingdom": {
-        1: 6.2,
-        2: 8.8,
-        3: 11.3,
-        4: 13.8,
+    "Canada": {
+        1: 7.6,
+        2: 10.7,
+        3: 13.8,
+        4: 16.9,
+        5: 20.0,
     },
 }
 
-# No extras yet for Yevivo – leave empty for now.
+# No extras yet – leave empty for now.
 EXTRA_COSTS = {
-    # "some extra product name": {"Australia": X, "United Kingdom": Y}
+    # "some extra product name": {"Canada": X}
 }
 
 ZERO_COGS_KEYS = ["express shipping", "dermatologist guide", "shipping protection"]
 
 COUNTRY_MAP = {
-    "GB": "United Kingdom",
-    "UK": "United Kingdom",
-    "United Kingdom": "United Kingdom",
-    "AU": "Australia",
-    "AUS": "Australia",
-    "Australia": "Australia",
+    "CA": "Canada",
+    "CAN": "Canada",
+    "Canada": "Canada",
 }
 
 COUNTRY_COLS = [
@@ -180,10 +177,10 @@ def main_cost_with_extrapolation(country: str, main_qty: int):
 
     max_tier = max(tiers.keys())
     if main_qty > max_tier:
-        if (max_tier - 1) in tiers:
-            step = tiers[max_tier] - tiers[max_tier - 1]
-        else:
-            step = 0
+        # use difference between the last two known tiers
+        sorted_keys = sorted(tiers.keys())
+        k1, k2 = sorted_keys[-2], sorted_keys[-1]
+        step = tiers[k2] - tiers[k1]
         est = tiers[max_tier] + step * (main_qty - max_tier)
         return float(round(est, 2)), f"Extrapolated main COGS for {main_qty} units"
     return 0.0, f"Missing main tier for {main_qty} units."
@@ -195,18 +192,15 @@ def norm(s: str) -> str:
     s = re.sub(r"[\W_]+", " ", s)
     return " ".join(s.split())
 
+
 def is_main(n: str) -> bool:
     """
     Treat any Yevivo bottle line as the main product.
-
     This is intentionally loose so it works for:
     - single bottles
-    - 2/3/4 packs
-    - any bundle where the name still contains 'Yevivo'
+    - 2/3/5 packs (with FREE GIFT lines)
     """
     return "yevivo" in n
-
-
 
 
 def zero_cogs(n: str) -> bool:
@@ -255,15 +249,14 @@ def calc_cogs(df: pd.DataFrame, debug=False):
             raw_country = raw_country_series.iloc[0] if not raw_country_series.empty else ""
         else:
             raw_country = ""
-    
+
         country = COUNTRY_MAP.get(raw_country, raw_country)
-    
+
         main_qty = 0
         extras_cost = 0.0
-    
-        # IMPORTANT: use ALL line rows for qty — don’t filter by shipping country
-        items = grp.copy()
 
+        # use ALL line rows for qty
+        items = grp.copy()
 
         for _, r in items.iterrows():
             n = norm(r.get("Lineitem name", ""))
@@ -296,7 +289,7 @@ def calc_cogs(df: pd.DataFrame, debug=False):
 
 def calc_revenue_and_fees(df: pd.DataFrame):
     """
-    Yevivo store currency is already USD.
+    Store currency is USD.
     This returns (revenue_usd, fees_usd, net_after_fees_usd).
     """
     if df.empty:
@@ -316,7 +309,7 @@ def calc_revenue_and_fees(df: pd.DataFrame):
     else:
         revenue_usd = 0.0
 
-    # Same blended fee assumption as Rhóms:
+    # Same blended fee assumption:
     # (Stripe/Shopify 2.8% + 30c) + (extra 2% fee), both grossed up 10% for FX/other.
     fees_usd = ((revenue_usd * 0.028 + 0.3) * 1.1) + ((revenue_usd * 0.02) * 1.1)
     net_after_fees_usd = revenue_usd - fees_usd
@@ -366,9 +359,8 @@ def pretty_range(dmin: pd.Timestamp, dmax: pd.Timestamp) -> str:
         return f"{dmin.strftime('%b %d')} → {dmax.strftime('%b %d, %Y')}"
     return f"{dmin.strftime('%b %d, %Y')} → {dmax.strftime('%b %d, %Y')}"
 
-
 # ------------------------- UI -------------------------
-st.title("Yevivo Profitability Dashboard")
+st.title("Yevivo Profitability Dashboard (Canada)")
 st.caption("Drop your Shopify CSV + Ad Spend. See blended & front-end profitability in one glance (USD).")
 
 # Hero inputs
@@ -603,24 +595,18 @@ if file:
                 except Exception:
                     dt = ""
 
-            raw_country = str(grp[country_col].iloc[0]).strip() if country_col else ""
-            norm_country = COUNTRY_MAP.get(raw_country, raw_country)
-            country_known = norm_country in MAIN_COST_TABLE
-
-            # ignore ghost rows — keep only records with a shipping country
             # country lookup
             if country_col:
                 raw_country_series = grp[country_col].dropna().astype(str).str.strip()
                 raw_country = raw_country_series.iloc[0] if not raw_country_series.empty else ""
             else:
                 raw_country = ""
-            
+
             norm_country = COUNTRY_MAP.get(raw_country, raw_country)
             country_known = norm_country in MAIN_COST_TABLE
-            
+
             # use all rows for unit counts
             items = grp.copy()
-
 
             main_qty = 0
             extras_cost = 0.0
