@@ -204,13 +204,15 @@ def norm(s):
     s = re.sub(r"[\W_]+"," ", s)
     return " ".join(s.split())
 
+# store aliases in the *same* normalized format as norm()
 MAIN_NAME_ALIASES = [
-    "Yevivo\u2122 Premium Liquid Collagen",  # new alias (normalized)
+    "yevivo premium liquid collagen",  # main Yevivo bottle
 ]
 
 def is_main(n: str) -> bool:
     # 'n' is already normalized via norm(); match any known alias
     return any(alias in n for alias in MAIN_NAME_ALIASES)
+
 def zero_cogs(n): return any(k in n for k in ZERO_COGS_KEYS)
 def extra_key(n):
     for key in EXTRA_COSTS:
