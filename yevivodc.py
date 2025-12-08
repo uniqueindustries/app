@@ -134,6 +134,20 @@ MAIN_COST_TABLE = {
         4: 16.9,
         5: 20.0,
     },
+    "United Kingdom": {
+        1: 5.7,
+        2: 8.25,   # between 1pc (5.7) and 3pc (10.8)
+        3: 10.8,
+        4: 13.1,   # between 3pc (10.8) and 5pc (15.4)
+        5: 15.4,
+    },
+    "United States": {
+        1: 7.5,
+        2: 10.55,  # between 1pc (7.5) and 3pc (13.6)
+        3: 13.6,
+        4: 16.9,   # between 3pc (13.6) and 5pc (20.2)
+        5: 20.2,
+    },
 }
 
 # No extras yet – leave empty for now.
@@ -144,9 +158,23 @@ EXTRA_COSTS = {
 ZERO_COGS_KEYS = ["express shipping", "dermatologist guide", "shipping protection"]
 
 COUNTRY_MAP = {
+    # Canada
     "CA": "Canada",
     "CAN": "Canada",
     "Canada": "Canada",
+
+    # United States
+    "US": "United States",
+    "USA": "United States",
+    "United States": "United States",
+    "United States of America": "United States",
+
+    # United Kingdom
+    "GB": "United Kingdom",
+    "GBR": "United Kingdom",
+    "UK": "United Kingdom",
+    "United Kingdom": "United Kingdom",
+    "Great Britain": "United Kingdom",
 }
 
 COUNTRY_COLS = [
