@@ -128,27 +128,29 @@ h1{font-size:2.4rem!important; letter-spacing:.3px; margin:.1rem 0 .8rem}
 
 MAIN_COST_TABLE = {
     "Canada": {
-        1: 7.6,
-        2: 10.7,
-        3: 13.8,
-        4: 16.9,
-        5: 20.0,
+        1: 7.9,     # UPDATED (old: 7.6)
+        2: 11.15,   # UPDATED mid between 1pc (7.9) & 3pc (14.4) — old: 10.7
+        3: 14.4,    # UPDATED (old: 13.8)
+        4: 18.2,    # UPDATED mid between 3pc (14.4) & 5pc (22) — old: 16.9
+        5: 22.0,    # UPDATED (old: 20.0)
     },
     "United Kingdom": {
-        1: 5.7,
-        2: 8.25,   # between 1pc (5.7) and 3pc (10.8)
-        3: 10.8,
-        4: 13.1,   # between 3pc (10.8) and 5pc (15.4)
-        5: 15.4,
+        1: 6.5,     # UPDATED (old: 5.7)
+        2: 9.45,    # UPDATED mid between 1pc (6.5) & 3pc (12.4) — old: 8.25
+        3: 12.4,    # UPDATED (old: 10.8)
+        4: 15.15,   # UPDATED mid between 3pc (12.4) & 5pc (17.9) — old: 13.1
+        5: 17.9,    # UPDATED (old: 15.4)
     },
     "United States": {
-        1: 7.5,
-        2: 10.55,  # between 1pc (7.5) and 3pc (13.6)
-        3: 13.6,
-        4: 16.9,   # between 3pc (13.6) and 5pc (20.2)
-        5: 20.2,
+        # US pricing stays unchanged because no new data was provided
+        1: 7.5,     # unchanged
+        2: 10.55,   # unchanged
+        3: 13.6,    # unchanged
+        4: 16.9,    # unchanged
+        5: 20.2,    # unchanged
     },
 }
+
 
 # No extras yet – leave empty for now.
 EXTRA_COSTS = {
