@@ -128,28 +128,35 @@ h1{font-size:2.4rem!important; letter-spacing:.3px; margin:.1rem 0 .8rem}
 
 MAIN_COST_TABLE = {
     "Canada": {
-        1: 7.9,     # UPDATED (old: 7.6)
-        2: 11.15,   # UPDATED mid between 1pc (7.9) & 3pc (14.4) — old: 10.7
-        3: 14.4,    # UPDATED (old: 13.8)
-        4: 18.2,    # UPDATED mid between 3pc (14.4) & 5pc (22) — old: 16.9
-        5: 22.0,    # UPDATED (old: 20.0)
+        1: 8.5,     # UPDATED (old: 7.6 → 7.9 → 8.5)
+        2: 12.5,    # UPDATED (old: 10.7 → 11.15 → 12.5)
+        3: 15.5,    # UPDATED (old: 13.8 → 14.4 → 15.5)
+        4: 19.0,    # UPDATED (old: 16.9 → 18.2 → 19.0)
+        5: 25.5,    # UPDATED (old: 20.0 → 22.0 → 22.5 ❌ → 25.5 ✅ supplier-confirmed)
+    },
+    "Australia": {
+        1: 8.0,     # NEW (no previous price)
+        2: 10.5,    # NEW (no previous price)
+        3: 13.5,    # NEW (no previous price)
+        4: 15.5,    # NEW (no previous price)
+        5: 18.0,    # NEW (no previous price)
     },
     "United Kingdom": {
-        1: 6.5,     # UPDATED (old: 5.7)
-        2: 9.45,    # UPDATED mid between 1pc (6.5) & 3pc (12.4) — old: 8.25
-        3: 12.4,    # UPDATED (old: 10.8)
-        4: 15.15,   # UPDATED mid between 3pc (12.4) & 5pc (17.9) — old: 13.1
-        5: 17.9,    # UPDATED (old: 15.4)
+        1: 7.5,     # UPDATED (old: 5.7 → 6.5 → 7.5)
+        2: 10.0,    # UPDATED (old: 8.25 → 9.45 → 10.0)
+        3: 13.0,    # UPDATED (old: 10.8 → 12.4 → 13.0)
+        4: 16.0,    # UPDATED (old: 13.1 → 15.15 → 16.0)
+        5: 19.0,    # UPDATED (old: 15.4 → 17.9 → 19.0)
     },
     "United States": {
-        # US pricing stays unchanged because no new data was provided
-        1: 7.5,     # unchanged
-        2: 10.55,   # unchanged
-        3: 13.6,    # unchanged
-        4: 16.9,    # unchanged
-        5: 20.2,    # unchanged
+        1: 10.0,    # UPDATED (old: 7.5 → 10.0)
+        2: 14.5,    # UPDATED (old: 10.55 → 14.5)
+        3: 19.5,    # UPDATED (old: 13.6 → 19.5)
+        4: 24.5,    # UPDATED (old: 16.9 → 24.5)
+        5: 28.0,    # UPDATED (old: 20.2 → 28.0)
     },
 }
+
 
 
 # No extras yet – leave empty for now.
