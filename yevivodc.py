@@ -132,7 +132,7 @@ MAIN_COST_TABLE = {
         2: 12.5,    # UPDATED (old: 10.7 → 11.15 → 12.5)
         3: 15.5,    # UPDATED (old: 13.8 → 14.4 → 15.5)
         4: 19.0,    # UPDATED (old: 16.9 → 18.2 → 19.0)
-        5: 25.5,    # UPDATED (old: 20.0 → 22.0 → 22.5 ❌ → 25.5 ✅ supplier-confirmed)
+        5: 22.5,    # UPDATED (old: 20.0 → 22.0 → 22.5 ❌ → 25.5 ✅ supplier-confirmed)
     },
     "Australia": {
         1: 8.0,     # NEW (no previous price)
